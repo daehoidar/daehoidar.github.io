@@ -1,0 +1,2162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cafe Minu</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: #0e0a08;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .cafe-wrapper {
+    transform-origin: center;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+  }
+
+  .cafe-container {
+    position: relative;
+    width: 1536px;
+    height: 1024px;
+    image-rendering: pixelated;
+    overflow: hidden;
+  }
+
+  .cafe-bg {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    display: block;
+  }
+
+  /* === Cherry Blossom Petals (window area) === */
+  .window-petals {
+    position: absolute;
+    top: 200px;
+    left: 683px;
+    width: 753px;
+    height: 383px;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  .petal {
+    position: absolute;
+    background: #f4a0b0;
+    border-radius: 50% 0 50% 50%;
+    opacity: 0;
+    animation: petalFall linear infinite;
+    image-rendering: pixelated;
+  }
+
+  /* === Cat Sprite === */
+  .cat-sprite {
+    position: absolute;
+    top: 536px;
+    left: 760px;
+    z-index: 4;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .cat-sprite-container {
+    width: 128px;
+    height: 128px;
+    overflow: hidden;
+    background-image: url('images/idle.png');
+    background-size: 896px 128px;
+    background-position: 0 0;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+  }
+
+  /* Cat dialog */
+  .cat-dialog {
+    position: absolute;
+    top: 420px;
+    left: 740px;
+    background: rgba(62, 39, 35, 0.7);
+    border: 2px solid #8d6e63;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 25;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+    white-space: nowrap;
+  }
+
+  .cat-dialog.show {
+    display: flex;
+  }
+
+  .cat-dialog-msg {
+    font-family: 'Georgia', serif;
+    font-size: 14px;
+    color: #fdf6e3;
+    text-align: center;
+    padding-bottom: 3px;
+  }
+
+  .cat-dialog-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    padding-top: 6px;
+  }
+
+  .cat-dialog-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #fdf6e3;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid #8d6e63;
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .cat-dialog-btn:hover {
+    background: rgba(255, 200, 130, 0.25);
+    border-color: #ffab91;
+  }
+
+  .cat-toast {
+    position: absolute;
+    top: 500px;
+    left: 712px;
+    background: rgba(62, 39, 35, 0.7);
+    border: 2px solid #8d6e63;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-family: 'Georgia', serif;
+    font-size: 12px;
+    color: #fdf6e3;
+    z-index: 25;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  .cat-toast.show {
+    opacity: 1;
+  }
+
+  .petal.s1 { width: 4px; height: 4px; }
+  .petal.s2 { width: 6px; height: 6px; }
+  .petal.s3 { width: 8px; height: 8px; }
+
+  @keyframes petalFall {
+    0% {
+      opacity: 0;
+      transform: translate(0, -10px) rotate(0deg);
+    }
+    4% { opacity: 0.8; }
+    20% { transform: translate(-30px, 100px) rotate(80deg); }
+    40% { transform: translate(10px, 230px) rotate(180deg); }
+    60% { transform: translate(-20px, 370px) rotate(280deg); }
+    80% { transform: translate(5px, 490px) rotate(360deg); }
+    95% { opacity: 0.5; }
+    100% {
+      opacity: 0;
+      transform: translate(-35px, 620px) rotate(440deg);
+    }
+  }
+
+  /* === Sunlight Sparkles === */
+  .sparkle {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: rgba(255, 255, 220, 0.6);
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    animation: sparkleFloat 7s ease-in-out infinite;
+    z-index: 3;
+  }
+
+  @keyframes sparkleFloat {
+    0%, 100% { opacity: 0; transform: scale(0.5); }
+    30% { opacity: 0.7; transform: scale(1.2); }
+    60% { opacity: 0.3; transform: scale(0.8); }
+    80% { opacity: 0.6; transform: scale(1); }
+  }
+
+  /* === Lamp Glow === */
+  .lamp-glow {
+    position: absolute;
+    width: 164px;
+    height: 164px;
+    background: radial-gradient(circle, rgba(255, 170, 50, 0.45) 0%, rgba(255, 150, 30, 0.15) 40%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: lampFlicker 7s ease-in-out infinite;
+    z-index: 3;
+  }
+
+  .lamp0 { top: 90px; left: 125px; animation-delay: 1.2s; }
+  .lamp1 { top: 90px; left: 507px; animation-delay: 0s; }
+  .lamp2 { top: 90px; left: 810px; animation-delay: 1.5s; }
+  .lamp3 { top: 90px; left: 1183px; animation-delay: 0.8s; }
+
+  @keyframes lampFlicker {
+    0%, 100% { opacity: 0.7; }
+    20% { opacity: 1; }
+    45% { opacity: 0.6; }
+    70% { opacity: 1; }
+    90% { opacity: 0.8; }
+  }
+
+  /* === Steam === */
+  .steam-area {
+    position: absolute;
+    top: 794px;
+    left: 1342px;
+    width: 54px;
+    height: 60px;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  .steam-area.show {
+    opacity: 1;
+  }
+
+  .steam-particle {
+    position: absolute;
+    bottom: 0;
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    animation: steamUp 2.5s ease-out infinite;
+  }
+
+  .steam-particle:nth-child(1) { left: 8px; animation-delay: 0s; }
+  .steam-particle:nth-child(2) { left: 18px; animation-delay: 0.6s; }
+  .steam-particle:nth-child(3) { left: 28px; animation-delay: 1.2s; }
+
+  @keyframes steamUp {
+    0% { opacity: 0; transform: translateY(0) scale(1); }
+    15% { opacity: 0.4; }
+    50% { opacity: 0.2; transform: translateY(-28px) translateX(3px) scale(1.8); }
+    100% { opacity: 0; transform: translateY(-55px) translateX(-4px) scale(2.5); }
+  }
+
+  /* Speech Bubble */
+  .speech-bubble {
+    position: absolute;
+    background: rgba(62, 39, 35, 0.7);
+    border: 2px solid #8d6e63;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-family: 'Georgia', serif;
+    font-size: 17px;
+    color: #fdf6e3;
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+    image-rendering: auto;
+    z-index: 20;
+    box-shadow: 2px 3px 0 rgba(0,0,0,0.3);
+    transition: opacity 0.3s ease;
+  }
+
+  .speech-bubble.show { opacity: 1; }
+
+  /* Click Areas */
+  .click-zone {
+    position: absolute;
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    transition: all 0.3s;
+    z-index: 10;
+    pointer-events: auto;
+  }
+
+  .click-zone:hover {
+    background: transparent;
+  }
+
+  .click-zone.counter {
+    top: 190px;
+    left: 20px;
+    width: 430px;
+    height: 430px;
+  }
+
+  /* Owner Silhouette (floor shadow) */
+  .owner-silhouette {
+    position: absolute;
+    top: 670px;
+    left: -120px;
+    width: 460px;
+    height: 180px;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.01) 75%, rgba(0,0,0,0.05) 90%, transparent 100%);
+    border-radius: 50%;
+    z-index: 2;
+    pointer-events: auto;
+    cursor: pointer;
+    transform: rotate(-42deg);
+    animation: shadowBreathe 5s ease-in-out infinite;
+  }
+
+  @keyframes shadowBreathe {
+    0%, 100% { transform: rotate(-42deg) scale(1); }
+    50% { transform: rotate(-42deg) scale(1.1, 0.9); }
+  }
+
+  .owner-toast {
+    position: absolute;
+    top: 630px;
+    left: 160px;
+    font-family: 'Georgia', serif;
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+
+  .owner-toast.show {
+    opacity: 1;
+  }
+
+  /* Logo */
+  .cafe-logo {
+    position: absolute;
+    top: 29px;
+    left: 33px;
+    font-family: 'Georgia', serif;
+    font-size: 28px;
+    color: #fdf6e3;
+    text-shadow: 2px 2px 0 #3e2723, 3px 3px 6px rgba(0,0,0,0.5);
+    letter-spacing: 3px;
+    cursor: pointer;
+    z-index: 20;
+    image-rendering: auto;
+    transition: color 0.3s;
+  }
+
+  .cafe-logo:hover {
+    color: #ffe0b2;
+  }
+
+  /* Music Player */
+  .music-player {
+    position: absolute;
+    top: 22px;
+    right: 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 20;
+    image-rendering: auto;
+  }
+
+  .music-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(93, 64, 55, 0.85);
+    border: 2px solid #8d6e63;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #fdf6e3;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+  }
+
+  .music-icon:hover {
+    background: rgba(120, 85, 72, 0.9);
+    transform: scale(1.05);
+  }
+
+  .music-info {
+    background: rgba(93, 64, 55, 0.85);
+    border: 2px solid #8d6e63;
+    border-radius: 6px;
+    padding: 6px 14px;
+    min-width: 180px;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+  }
+
+  .music-title {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #fdf6e3;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 170px;
+  }
+
+  .music-bar {
+    width: 100%;
+    height: 3px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .music-bar-fill {
+    width: 0%;
+    height: 100%;
+    background: #ffab91;
+    border-radius: 2px;
+    transition: width 0.5s linear;
+  }
+
+  /* Hidden YouTube player - needs minimum size for playlist to work */
+  #ytPlayer {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* Music Start Prompt */
+  .music-prompt {
+    position: absolute;
+    top: 38px;
+    left: 48.5%;
+    transform: translateX(-50%);
+    font-family: 'Courier New', monospace;
+    font-size: 19px;
+    color: rgba(255, 255, 255, 0.55);
+    letter-spacing: 1px;
+    white-space: nowrap;
+    z-index: 25;
+    image-rendering: auto;
+    pointer-events: none;
+    animation: promptPulse 2.5s ease-in-out infinite;
+    transition: opacity 0.9s ease;
+  }
+
+  .music-prompt.hidden {
+    animation: none;
+    opacity: 0;
+  }
+
+  @keyframes promptPulse {
+    0%, 100% { opacity: 0.51; }
+    50% { opacity: 0.8; }
+  }
+
+  /* Screens */
+  .screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    pointer-events: none;
+  }
+
+  .screen.active {
+    display: block;
+    pointer-events: none;
+    z-index: 8;
+  }
+
+  .screen.active .screen-inner,
+  .screen.active .menu-board {
+    pointer-events: auto;
+  }
+
+  .screen.active .screen-inner {
+    animation: panelSlideIn 0.3s ease;
+  }
+
+  .screen.active .menu-board {
+    animation: menuSlideIn 0.3s ease;
+  }
+
+  @keyframes panelSlideIn {
+    from { transform: translateY(-10px); }
+    to { transform: translateY(0); }
+  }
+
+  @keyframes menuSlideIn {
+    from { transform: translateX(-50%) translateY(-10px); }
+    to { transform: translateX(-50%) translateY(0); }
+  }
+
+  .screen-inner {
+    position: absolute;
+    top: 80px;
+    left: 80px;
+    right: 80px;
+    bottom: 100px;
+    background: rgba(30, 20, 15, 0.85);
+    border: 4px solid #5c4033;
+    border-radius: 12px;
+    padding: 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    image-rendering: auto;
+    z-index: 10;
+  }
+
+  .screen-title {
+    font-family: 'Georgia', serif;
+    font-size: 36px;
+    color: #fdf6e3;
+    text-shadow: 2px 2px 0 #3e2723;
+    margin-bottom: 20px;
+  }
+
+  .gallery-screen .screen-title { font-size: 30px; margin-top: -33px;}
+  .gb-screen .screen-title { font-size: 30px; margin-top: -33px;}
+
+  .screen-placeholder {
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Guestbook */
+  .gb-screen {
+    justify-content: flex-start;
+    align-items: stretch;
+    overflow: hidden;
+  }
+
+  .gb-screen .screen-title {
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .gb-form {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-bottom: 12px;
+  }
+
+  .gb-input {
+    width: 100px;
+    padding: 8px 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #fdf6e3;
+    background: rgba(255,255,255,0.08);
+    border: 2px solid #5c4033;
+    border-radius: 6px;
+    outline: none;
+  }
+
+  .gb-input::placeholder,
+  .gb-textarea::placeholder {
+    color: rgba(255,255,255,0.3);
+  }
+
+  .gb-textarea {
+    flex: 1;
+    padding: 8px 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #fdf6e3;
+    background: rgba(255,255,255,0.08);
+    border: 2px solid #5c4033;
+    border-radius: 6px;
+    outline: none;
+    resize: none;
+    height: 36px;
+  }
+
+  .gb-submit {
+    padding: 8px 16px;
+    font-family: 'Georgia', serif;
+    font-size: 13px;
+    color: #fdf6e3;
+    background: rgba(93, 64, 55, 0.8);
+    border: 2px solid #8d6e63;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .gb-submit:hover {
+    background: rgba(141, 110, 99, 0.6);
+  }
+
+  .gb-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+
+  .gb-list::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .gb-list::-webkit-scrollbar-thumb {
+    background: #5c4033;
+    border-radius: 3px;
+  }
+
+  .gb-entry {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .gb-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .gb-name {
+    font-family: 'Georgia', serif;
+    font-size: 14px;
+    color: #ffab91;
+    font-weight: bold;
+  }
+
+  .gb-date {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .gb-msg {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  .gb-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    flex-shrink: 0;
+    padding-top: 10px;
+  }
+
+  .gb-page-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .gb-page-btn:hover {
+    background: rgba(255,255,255,0.1);
+  }
+
+  .gb-page-btn.active {
+    color: #ffab91;
+    border-color: #8d6e63;
+    background: rgba(93, 64, 55, 0.5);
+  }
+
+  /* Gallery */
+  .gallery-screen {
+    justify-content: flex-start;
+    align-items: stretch;
+    overflow: hidden;
+  }
+
+  .gallery-screen .screen-title {
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .gallery-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding: 10px 5px 10px 5px;
+    overflow: hidden;
+  }
+
+  .gallery-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    flex-shrink: 0;
+    padding-top: 10px;
+  }
+
+  .gal-page-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .gal-page-btn:hover {
+    background: rgba(255,255,255,0.1);
+  }
+
+  .gal-page-btn.active {
+    color: #ffab91;
+    border-color: #8d6e63;
+    background: rgba(93, 64, 55, 0.5);
+  }
+
+  .gallery-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .gallery-item:hover {
+    transform: scale(1.03);
+  }
+
+  .gallery-paper {
+    position: relative;
+    background: #e8dcc8;
+    background-image:
+      linear-gradient(135deg, rgba(180,160,130,0.1) 0%, transparent 50%),
+      linear-gradient(225deg, rgba(120,100,70,0.08) 0%, transparent 50%);
+    padding: 14px 14px 10px 15px;
+    box-shadow: 2px 3px 6px rgba(0,0,0,0.35), inset 0 0 15px rgba(120,100,70,0.1);
+  }
+
+  /* Tape on top */
+  .gallery-paper::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-2deg);
+    width: 50px;
+    height: 18px;
+    background: rgba(200, 190, 160, 0.55);
+    border: 1px solid rgba(180, 170, 140, 0.3);
+    z-index: 1;
+  }
+
+  .gallery-img-wrap {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a1a;
+  }
+
+  .gallery-img-wrap img {
+    display: block;
+    max-width: 100%;
+    max-height: 250px;
+    object-fit: contain;
+  }
+
+  /* Faded edges */
+  .gallery-img-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    box-shadow: inset 0 0 15px 8px rgba(232, 220, 200, 0.5);
+    pointer-events: none;
+  }
+
+  .gallery-title {
+    margin-top: 8px;
+    font-family: 'Georgia', serif;
+    font-size: 13px;
+    color: #5c4033;
+    text-align: center;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+
+  .gallery-title.has-blog {
+    font-weight: bold;
+  }
+
+  .gallery-blog-icon {
+    font-size: 9px;
+    margin-left: 3px;
+    opacity: 0.7;
+  }
+
+  .gallery-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: rgba(255,255,255,0.4);
+    font-family: 'Courier New', monospace;
+    padding-top: 40px;
+  }
+
+  /* Lightbox */
+  .lightbox {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    cursor: pointer;
+  }
+
+  .lightbox.show {
+    display: flex;
+  }
+
+  .lightbox-img {
+    max-width: 85vw;
+    max-height: 80vh;
+    object-fit: contain;
+    border: 3px solid rgba(255,255,255,0.15);
+    box-shadow: 0 0 40px rgba(0,0,0,0.6);
+  }
+
+  .lightbox-title {
+    margin-top: 14px;
+    font-family: 'Georgia', serif;
+    font-size: 16px;
+    color: rgba(255,255,255,0.7);
+  }
+
+  /* === Easter Egg (blackout) === */
+  .blackout-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1536px;
+    height: 1024px;
+    z-index: 50;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.8s;
+    /* 스포트라이트 중심 좌표: (1059px, 437px) = spotlight 영역의 중심 */
+    /* 조절: center 위치, 각 색상 stop의 px 값 */
+    background: radial-gradient(ellipse 600px 480px at 1059px 437px,
+      rgba(0,0,0,0) 0%,
+      rgba(0,0,0,0) 40%,
+      rgba(0,0,0,0.03) 55%,
+      rgba(0,0,0,0.08) 65%,
+      rgba(0,0,0,0.3) 75%,
+      rgba(0,0,0,0.55) 85%,
+      rgba(0,0,0,0.62) 95%,
+      rgba(0,0,0,0.7) 100%
+    );
+  }
+
+  .blackout-overlay.show {
+    opacity: 1;
+  }
+
+  .blackout-lamp-hole {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+      rgba(255,170,50,0.3) 0%,
+      rgba(255,150,30,0.15) 25%,
+      rgba(255,130,20,0.05) 50%,
+      transparent 70%
+    );
+    pointer-events: none;
+    opacity: 1;
+    transition: background 0s;
+  }
+
+  .blackout-lamp-hole.hide {
+    /* 밝은 빛 대신 어두운 그림자로 전환 */
+    background: radial-gradient(circle,
+      rgba(0,0,0,0.5) 0%,
+      rgba(0,0,0,0.3) 30%,
+      transparent 70%
+    );
+  }
+
+  .blackout-lamp-hole.waking {
+    opacity: 0.2;
+    transition: opacity 0.5s ease-in;
+  }
+
+  .blackout-lamp-hole.waking-full {
+    opacity: 0.5;
+    transition: opacity 0.5s ease-in;
+  }
+
+  /* 각 전등 위치에 맞춤 (lamp 중심 - 반지름 보정) */
+  .bl-lamp0 { top: 72px; left: 107px; }
+  .bl-lamp1 { top: 72px; left: 489px; }
+  .bl-lamp2 { top: 72px; left: 792px; }
+  .bl-lamp3 { top: 72px; left: 1165px; }
+
+  .lamp-glow.flicker-off {
+    animation: none !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s;
+  }
+
+  .lamp-glow.flicker-on {
+    animation: none !important;
+    opacity: 1 !important;
+    transition: opacity 0.15s;
+  }
+
+  /* Table Drink */
+  .table-drink {
+    position: absolute;
+    top: 790px;
+    left: 1310px;
+    font-size: 110px;
+    z-index: 5;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    filter: drop-shadow(5px -1px 5px rgba(0,0,0,0.4)) drop-shadow(-2px -2px 8px rgba(0,0,0,0.2)) sepia(0.3) saturate(0.7)brightness(0.7);
+  }
+
+  .table-drink.show {
+    opacity: 1;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .drink-toast {
+    position: absolute;
+    background: rgba(62, 39, 35, 0.7);
+    border: 2px solid #8d6e63;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-family: 'Georgia', serif;
+    font-size: 13px;
+    color: #fdf6e3;
+    z-index: 25;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  .drink-toast.hot-pos {
+    top: 770px;
+    left: 1253px;
+  }
+
+  .drink-toast.cold-pos {
+    top: 760px;
+    left: 1267px;
+  }
+
+  .drink-toast.show {
+    opacity: 1;
+  }
+
+  .latte-heart {
+    position: absolute;
+    top: 36.5%;
+    left: 49%;
+    transform: translateX(-50%);
+    font-size: 0.09em;
+    color: white;
+    text-shadow: 0 0 3px rgba(255,255,255,0.6);
+    pointer-events: none;
+    opacity: 0.35;
+  }
+
+  /* Menu Screen */
+  .menu-board {
+    position: absolute;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 700px;
+    bottom: 100px;
+    background: #d4b896;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(160, 120, 80, 0.08) 28px, rgba(160, 120, 80, 0.08) 29px),
+      repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(160, 120, 80, 0.05) 40px, rgba(160, 120, 80, 0.05) 41px);
+    border-radius: 6px;
+    padding: 40px 50px;
+    box-shadow:
+      4px 6px 0 rgba(0,0,0,0.3),
+      inset 0 0 40px rgba(120, 80, 40, 0.15);
+    image-rendering: auto;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #a08060 transparent;
+    z-index: 10;
+  }
+
+  .menu-board::-webkit-scrollbar {
+    width: 6px;
+  }
+  .menu-board::-webkit-scrollbar-thumb {
+    background: #a08060;
+    border-radius: 3px;
+  }
+
+  .menu-header {
+    text-align: center;
+    margin-bottom: 10px;
+    padding-bottom: 15px;
+    border-bottom: 2px dashed #a08060;
+  }
+
+  .menu-header h2 {
+    font-family: 'Georgia', serif;
+    font-size: 32px;
+    color: #3e2723;
+    letter-spacing: 4px;
+    margin-bottom: 6px;
+  }
+
+  .menu-header p {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #6d4c41;
+    letter-spacing: 1px;
+  }
+
+  .menu-category {
+    margin-top: 20px;
+    margin-bottom: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: #8d6e63;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+  }
+
+  .menu-item:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: #a08060;
+    transform: translateX(4px);
+  }
+
+  .menu-item:active {
+    transform: translateX(2px) scale(0.98);
+  }
+
+  .menu-cup {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    flex-shrink: 0;
+  }
+
+  .menu-details {
+    flex: 1;
+  }
+
+  .menu-name {
+    font-family: 'Georgia', serif;
+    font-size: 20px;
+    color: #3e2723;
+    margin-bottom: 3px;
+  }
+
+  .menu-desc {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #6d4c41;
+    line-height: 1.4;
+  }
+
+  .menu-price {
+    font-family: 'Georgia', serif;
+    font-size: 18px;
+    color: #5d4037;
+    flex-shrink: 0;
+    min-width: 60px;
+    text-align: right;
+  }
+
+  .menu-footer {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 2px dashed #a08060;
+    text-align: center;
+  }
+
+  .menu-footer p {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #8d6e63;
+    line-height: 1.6;
+  }
+
+  .order-toast {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background: rgba(62, 39, 35, 0.83);
+    border: 3px solid #8d6e63;
+    border-radius: 12px;
+    padding: 20px 36px;
+    font-family: 'Georgia', serif;
+    font-size: 18px;
+    color: #fdf6e3;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    z-index: 30;
+    text-align: center;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.4);
+    white-space: pre-line;
+  }
+
+  .order-toast.show {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  /* === Bottom Nav Bar === */
+  .nav-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    background:
+      linear-gradient(180deg, #6d4c2a 0%, #5a3d22 4%, #4e3319 8%, #5a3d22 50%, #4a2e16 100%);
+    border-top: 3px solid #7a5a3a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    z-index: 30;
+    box-shadow: 0 -3px 10px rgba(0,0,0,0.5);
+    image-rendering: auto;
+  }
+
+  .nav-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(255, 200, 130, 0.2);
+  }
+
+  .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 28px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .nav-btn:hover {
+    background: rgba(255, 200, 130, 0.1);
+  }
+
+  .nav-btn.active {
+    background: rgba(255, 200, 130, 0.15);
+  }
+
+  .nav-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 2px;
+    background: #ffab91;
+    border-radius: 1px;
+  }
+
+  .nav-icon {
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .nav-label {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #d4b896;
+    letter-spacing: 1px;
+  }
+
+  .nav-btn.active .nav-label {
+    color: #ffe0b2;
+  }
+
+  .hint {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,0.35);
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    z-index: 20;
+    image-rendering: auto;
+  }
+</style>
+</head>
+<body>
+
+<div class="cafe-wrapper">
+  <div class="cafe-container">
+    <!-- Background -->
+    <img src="images/cafe_bg.png" alt="Cafe Minu" class="cafe-bg">
+
+    <!-- PERSISTENT UI (visible on all screens) -->
+    <!-- Music Start Prompt -->
+    <div class="music-prompt" id="musicPrompt">♪ 화면을 클릭하여 배경 음악을 재생하세요 ♪</div>
+
+    <!-- Logo -->
+    <div class="cafe-logo" onclick="triggerBlackout()">Cafe minu</div>
+
+    <!-- Music Player -->
+    <div class="music-player" id="musicPlayer">
+      <div class="music-icon" onclick="toggleMusic()" id="musicIcon">▶</div>
+      <div class="music-info">
+        <div class="music-title" id="musicTitle">재생 중인 음악 없음</div>
+        <div class="music-bar">
+          <div class="music-bar-fill" id="musicBarFill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drink on table + Steam (persistent, visible on all screens) -->
+    <div class="steam-area" id="steamArea">
+      <div class="steam-particle"></div>
+      <div class="steam-particle"></div>
+      <div class="steam-particle"></div>
+    </div>
+    <div class="table-drink" id="tableDrink"></div>
+    <div class="drink-toast" id="drinkToast"></div>
+
+    <!-- Toast (persistent) -->
+    <div class="order-toast" id="orderToast"></div>
+
+    <!-- Cat sprite on table -->
+    <div class="cat-sprite" id="catSprite" onclick="toggleCatDialog()">
+      <div class="cat-sprite-container" id="catContainer"></div>
+    </div>
+
+    <!-- Cat dialog (outside cat-sprite for z-index) -->
+    <div class="cat-dialog" id="catDialog">
+      <div class="cat-dialog-msg">애옹~ 🐱</div>
+      <div class="cat-dialog-btns" id="catDialogBtns">
+        <div class="cat-dialog-btn" id="catHatBtn" onclick="giveCatHat()">🎩 모자 선물 주기</div>
+        <div class="cat-dialog-btn" onclick="skipSong()">⏭ 노래 스킵</div>
+        <div class="cat-dialog-btn" onclick="closeCatDialog()">취소</div>
+      </div>
+    </div>
+    <div class="cat-toast" id="catToast"></div>
+
+    <!-- Owner silhouette (floor shadow) -->
+    <div class="owner-silhouette" onclick="showOwnerToast()"></div>
+    <div class="owner-toast" id="ownerToast">주인장 일하는 중 🧹</div>
+
+    <!-- Background effects (persistent, visible behind panels) -->
+    <div class="window-petals" id="petals"></div>
+    <div class="lamp-glow lamp0"></div>
+    <div class="lamp-glow lamp1"></div>
+    <div class="lamp-glow lamp2"></div>
+    <div class="lamp-glow lamp3"></div>
+
+    <!-- SCREEN: CAFE (Main) -->
+    <div class="screen screen-cafe active" id="screenCafe">
+      <!-- Click zones -->
+      <div class="click-zone counter" onclick="showBubble('owner')"></div>
+
+      <!-- Speech bubbles -->
+      <div class="speech-bubble" id="ownerBubble" style="top: 145px; left: 40px;">
+        오늘도 방문해 주셔서 감사합니다. 편히 쉬다 가세요. ( ̇ᴗ ̇)
+      </div>
+
+      <div class="hint">☝ 카페 로고 & 고양이를 클릭해보세요</div>
+    </div>
+
+    <!-- SCREEN: MENU -->
+    <div class="screen screen-menu" id="screenMenu">
+      <div class="menu-board">
+        <div class="menu-header">
+          <h2>M E N U</h2>
+          <p>Cafe minu · 오늘도 좋은 하루 되세요</p>
+        </div>
+
+        <div class="menu-category">— Coffee —</div>
+
+        <div class="menu-item" onclick="orderDrink(this, 'americano')" data-drink="americano">
+          <div class="menu-cup">☕</div>
+          <div class="menu-details">
+            <div class="menu-name">아메리카노</div>
+            <div class="menu-desc">깊고 진한 에스프레소에 뜨거운 물을 더한 클래식</div>
+          </div>
+          <div class="menu-price">2,000원</div>
+        </div>
+
+        <div class="menu-item" onclick="orderDrink(this, 'latte')" data-drink="latte">
+          <div class="menu-cup">☕</div>
+          <div class="menu-details">
+            <div class="menu-name">카페 라떼</div>
+            <div class="menu-desc">부드러운 우유와 에스프레소의 조화</div>
+          </div>
+          <div class="menu-price">2,500원</div>
+        </div>
+
+        <div class="menu-item" onclick="orderDrink(this, 'espresso')" data-drink="espresso">
+          <div class="menu-cup">☕</div>
+          <div class="menu-details">
+            <div class="menu-name">에스프레소</div>
+            <div class="menu-desc">진하고 강렬한 한 잔의 에센스</div>
+          </div>
+          <div class="menu-price">1,500원</div>
+        </div>
+
+        <div class="menu-category">— Tea & Others —</div>
+
+        <div class="menu-item" onclick="orderDrink(this, 'chamomile')" data-drink="chamomile">
+          <div class="menu-cup">🍵</div>
+          <div class="menu-details">
+            <div class="menu-name">카모마일 차</div>
+            <div class="menu-desc">은은한 꽃향기로 마음을 편안하게</div>
+          </div>
+          <div class="menu-price">2,000원</div>
+        </div>
+
+        <div class="menu-item" onclick="orderDrink(this, 'hotchoco')" data-drink="hotchoco">
+          <div class="menu-cup">🍫</div>
+          <div class="menu-details">
+            <div class="menu-name">핫초코</div>
+            <div class="menu-desc">달콤한 초콜릿과 따뜻한 우유의 포근함</div>
+          </div>
+          <div class="menu-price">2,500원</div>
+        </div>
+
+        <div class="menu-item" onclick="orderDrink(this, 'bubbletea')" data-drink="bubbletea">
+          <div class="menu-cup">🧋</div>
+          <div class="menu-details">
+            <div class="menu-name">버블티</div>
+            <div class="menu-desc">쫀득한 타피오카와 시원한 밀크티의 만남</div>
+          </div>
+          <div class="menu-price">2,500원</div>
+        </div>
+
+        <div class="menu-footer">
+          <p>☝ 메뉴를 클릭하면 주문할 수 있어요<br>주문한 음료는 카페 테이블 위에 놓입니다</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN: GALLERY -->
+    <div class="screen screen-gallery" id="screenGallery">
+      <div class="screen-inner gallery-screen">
+        <h2 class="screen-title">🖼 갤러리</h2>
+        <div class="gallery-grid" id="galleryGrid"></div>
+        <div class="gallery-pagination" id="galPagination"></div>
+      </div>
+    </div>
+
+    <!-- SCREEN: GUESTBOOK -->
+    <div class="screen screen-guestbook" id="screenGuestbook">
+      <div class="screen-inner gb-screen">
+        <h2 class="screen-title">📖 방명록</h2>
+        <div class="gb-form">
+          <input type="text" id="gbName" class="gb-input" placeholder="이름" maxlength="20">
+          <textarea id="gbMsg" class="gb-textarea" placeholder="메시지를 남겨주세요..." maxlength="300"></textarea>
+          <button class="gb-submit" onclick="submitGuestbook()">남기기 ✏️</button>
+        </div>
+        <div class="gb-list" id="guestbookList"></div>
+        <div class="gb-pagination" id="gbPagination"></div>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAV BAR -->
+    <div class="nav-bar">
+      <div class="nav-btn active" onclick="switchScreen('Cafe')" id="navCafe">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">카페</span>
+      </div>
+      <div class="nav-btn" onclick="switchScreen('Menu')" id="navMenu">
+        <span class="nav-icon">☕</span>
+        <span class="nav-label">메뉴</span>
+      </div>
+      <div class="nav-btn" onclick="switchScreen('Gallery')" id="navGallery">
+        <span class="nav-icon">🖼</span>
+        <span class="nav-label">갤러리</span>
+      </div>
+      <div class="nav-btn" onclick="switchScreen('Guestbook')" id="navGuestbook">
+        <span class="nav-icon">📖</span>
+        <span class="nav-label">방명록</span>
+      </div>
+    </div>
+
+    <!-- Easter Egg Blackout Overlay -->
+    <div class="blackout-overlay" id="blackoutOverlay">
+      <div class="blackout-lamp-hole bl-lamp0" id="blLamp0"></div>
+      <div class="blackout-lamp-hole bl-lamp1" id="blLamp1"></div>
+      <div class="blackout-lamp-hole bl-lamp2" id="blLamp2"></div>
+      <div class="blackout-lamp-hole bl-lamp3" id="blLamp3"></div>
+    </div>
+
+    <!-- Hidden YouTube Player -->
+    <div id="ytPlayer"></div>
+  </div>
+</div>
+
+<!-- Gallery Lightbox (outside wrapper for proper fullscreen) -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <img class="lightbox-img" id="lightboxImg" src="" alt="">
+  <div class="lightbox-title" id="lightboxTitle"></div>
+</div>
+
+<!-- YouTube IFrame API -->
+<script>
+  // 갤러리 데이터 
+  const GALLERY_DATA = [
+    // 이미지 추가/삭제
+    // images/gallery/ 폴더에 사진을 넣고 아래에 경로와 제목을 추가
+    // { img: 'images/gallery/파일명.jpg', title: '제목' }
+    // 블로그 연동: { img: '...', title: '제목', blog: 'https://블로그주소' }
+    { img: 'images/gallery/hanyang_hospital.jpeg', title: '한양대 병원'},
+    { img: 'images/gallery/sav_seoul.jpeg', title: '사브 서울', blog: 'https://yes-you-are.tistory.com/26'},
+    { img: 'images/gallery/daebudo.jpeg', title: '대부도' },
+    { img: 'images/gallery/busan_songdo.jpeg', title: '부산 송도' },
+    { img: 'images/gallery/sapporo.jpeg', title: '삿포로', blog: 'https://yes-you-are.tistory.com/24' },
+    { img: 'images/gallery/youngheungdo.jpeg', title: '영흥도' },
+  ];
+
+  const GAL_PER_PAGE = 6;
+  let galPage = 1;
+
+  function renderGallery() {
+    const grid = document.getElementById('galleryGrid');
+    const pagination = document.getElementById('galPagination');
+    grid.innerHTML = '';
+    pagination.innerHTML = '';
+
+    if (GALLERY_DATA.length === 0) {
+      grid.innerHTML = '<p class="gallery-empty">아직 전시된 사진이 없어요.</p>';
+      return;
+    }
+
+    const totalPages = Math.ceil(GALLERY_DATA.length / GAL_PER_PAGE);
+    if (galPage > totalPages) galPage = totalPages;
+    const start = (galPage - 1) * GAL_PER_PAGE;
+    const pageItems = GALLERY_DATA.slice(start, start + GAL_PER_PAGE);
+
+    pageItems.forEach((item, i) => {
+      const el = document.createElement('div');
+      el.className = 'gallery-item';
+      if (item.blog) {
+        el.onclick = function() { window.open(item.blog, '_blank'); };
+      } else {
+        el.onclick = function() { openLightbox(item.img, item.title); };
+      }
+      const titleClass = item.blog ? 'gallery-title has-blog' : 'gallery-title';
+      const blogIcon = item.blog ? '<span class="gallery-blog-icon">📝</span>' : '';
+      el.innerHTML =
+        '<div class="gallery-paper">' +
+          '<div class="gallery-img-wrap">' +
+            '<img src="' + item.img + '" alt="' + item.title + '" loading="lazy">' +
+          '</div>' +
+          '<div class="' + titleClass + '">' + item.title + blogIcon + '</div>' +
+        '</div>';
+      grid.appendChild(el);
+    });
+
+    if (totalPages > 1) {
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'gal-page-btn' + (i === galPage ? ' active' : '');
+        btn.textContent = i;
+        btn.onclick = function() { galPage = i; renderGallery(); };
+        pagination.appendChild(btn);
+      }
+    }
+  }
+
+  function openLightbox(src, title) {
+    const lb = document.getElementById('lightbox');
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('lightboxTitle').textContent = title;
+    lb.classList.add('show');
+  }
+
+  function closeLightbox(e) {
+    if (e.target === document.getElementById('lightboxImg')) return;
+    document.getElementById('lightbox').classList.remove('show');
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') document.getElementById('lightbox').classList.remove('show');
+  });
+
+  renderGallery();
+
+  /* Easter Egg: Blackout */
+  let blackoutActive = false;
+
+  function triggerBlackout() {
+    if (blackoutActive) return;
+    blackoutActive = true;
+
+    const lamps = document.querySelectorAll('.lamp-glow');
+    const overlay = document.getElementById('blackoutOverlay');
+    const lampHoles = document.querySelectorAll('.blackout-lamp-hole');
+
+    // Reset
+    lampHoles.forEach(h => { h.classList.remove('hide'); h.classList.remove('waking'); h.classList.remove('waking-full'); });
+    overlay.style.transition = 'none'; // 깜빡임 중엔 transition 끄기
+    overlay.style.opacity = '0';
+
+    /* PHASE 1: 전등 깜빡임 + 오버레이 같이 깜빡임 */
+    let flickerCount = 0;
+    let lampsOn = true;
+    const flickerInterval = setInterval(() => {
+      lampsOn = !lampsOn;
+
+      // 마지막(10번째)에는 켜지지 않도록
+      if (flickerCount === 9 && lampsOn) {
+        lampsOn = false;
+      }
+
+      lamps.forEach(l => {
+        if (lampsOn) { l.classList.remove('flicker-off'); l.classList.add('flicker-on'); }
+        else { l.classList.add('flicker-off'); l.classList.remove('flicker-on'); }
+      });
+      // 전등 꺼질 때 주변도 어두운 그림자로 (후반부만)
+      if (flickerCount >= 6) {
+        lampHoles.forEach(h => {
+          if (lampsOn) h.classList.remove('hide');
+          else h.classList.add('hide');
+        });
+      }
+      // 점점 더 어두워지는 깜빡임 (flickerCount에 비례)
+      if (lampsOn) {
+        overlay.style.opacity = String(flickerCount * 0.06);
+      } else {
+        overlay.style.opacity = String(Math.min(flickerCount * 0.12, 1));
+      }
+
+      flickerCount++;
+
+      // ⏱ 10회째: 깜빡임 종료, 완전 암전 전환
+      if (flickerCount >= 10) {
+        clearInterval(flickerInterval);
+        lamps.forEach(l => {
+          l.classList.add('flicker-off');
+          l.classList.remove('flicker-on');
+        });
+        overlay.style.opacity = '1';
+
+        // 전등 꺼진 직후 주변을 더 어둡게
+        lampHoles.forEach(h => h.classList.add('hide'));
+
+        /* PHASE 2: 어둠 유지 후 복구 */
+        // 어둠 유지 시간: 4000ms
+        setTimeout(() => {
+          // 전등 주위 서서히 밝아짐 (어둡게 시작 → 500ms 동안 밝아짐)
+          lampHoles.forEach(h => {
+            h.classList.remove('hide');
+            h.classList.add('waking');
+          });
+          // 50ms 후 full로 전환 (transition이 0.5s라 서서히 밝아짐)
+          setTimeout(() => {
+            lampHoles.forEach(h => {
+              h.classList.remove('waking');
+              h.classList.add('waking-full');
+            });
+          }, 50);
+
+          // 500ms 후 깜빡이며 밝아짐
+          setTimeout(() => {
+            overlay.style.transition = 'none';
+            lampHoles.forEach(h => { h.classList.remove('waking'); h.classList.remove('waking-full'); });
+
+            let recoverCount = 0;
+            let rLampsOn = false;
+            const recoverInterval = setInterval(() => {
+              rLampsOn = !rLampsOn;
+              lamps.forEach(l => {
+                if (rLampsOn) { l.classList.remove('flicker-off'); l.classList.add('flicker-on'); }
+                else { l.classList.add('flicker-off'); l.classList.remove('flicker-on'); }
+              });
+              // 전등 꺼질 때 주변도 어두운 그림자로 (전반부만)
+              if (recoverCount < 5) {
+                lampHoles.forEach(h => {
+                  if (rLampsOn) h.classList.remove('hide');
+                  else h.classList.add('hide');
+                });
+              } else {
+                lampHoles.forEach(h => h.classList.remove('hide'));
+              }
+
+              // 점점 밝아지는 깜빡임
+              const remaining = 10 - recoverCount;
+              if (rLampsOn) {
+                overlay.style.opacity = String(Math.max(remaining * 0.06, 0));
+              } else {
+                overlay.style.opacity = String(Math.max(remaining * 0.1, 0));
+              }
+
+              recoverCount++;
+
+              // 10회째: 완전 복구
+              if (recoverCount >= 10) {
+                clearInterval(recoverInterval);
+                overlay.style.transition = 'opacity 0.6s';
+                overlay.style.opacity = '0';
+                overlay.classList.remove('show');
+                lamps.forEach(l => {
+                  l.classList.remove('flicker-off');
+                  l.classList.remove('flicker-on');
+                });
+                blackoutActive = false;
+              }
+            }, 120); // 깜빡임 간격
+          }, 500);
+
+        }, 4000);
+      }
+    }, 120); // 진입 깜빡임 간격
+  }
+
+  /* Scale to fit viewport */
+  function scaleToFit() {
+    const wrapper = document.querySelector('.cafe-wrapper');
+    const sw = window.innerWidth / 1536;
+    const sh = window.innerHeight / 1024;
+    const scale = Math.min(sw, sh);
+    wrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  }
+  scaleToFit();
+  window.addEventListener('resize', scaleToFit);
+
+  /* Generate petals */
+  const petalsEl = document.getElementById('petals');
+  for (let i = 0; i < 10; i++) {
+    const p = document.createElement('div');
+    p.classList.add('petal', ['s1','s2','s3'][Math.floor(Math.random()*3)]);
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (7 + Math.random() * 9) + 's';
+    p.style.animationDelay = (Math.random() * 14) + 's';
+    const hue = 335 + Math.random() * 25;
+    const lit = 75 + Math.random() * 15;
+    p.style.background = `hsl(${hue}, 65%, ${lit}%)`;
+    petalsEl.appendChild(p);
+  }
+
+  /* Sparkles */
+  const container = document.querySelector('.cafe-container');
+  for (let i = 0; i < 6; i++) {
+    const s = document.createElement('div');
+    s.classList.add('sparkle');
+    s.style.left = (672 + Math.random() * 767) + 'px';
+    s.style.top = (200 + Math.random() * 400) + 'px';
+    s.style.animationDelay = (Math.random() * 7) + 's';
+    s.style.animationDuration = (5 + Math.random() * 5) + 's';
+    container.appendChild(s);
+  }
+
+  /* Screen switching (SPA) */
+  function switchScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('screen' + name).classList.add('active');
+    document.getElementById('nav' + name).classList.add('active');
+  }
+
+  /* Speech bubbles */
+  let bubbleTimer = null;
+  let ownerToastTimer = null;
+
+  function showOwnerToast() {
+    const toast = document.getElementById('ownerToast');
+    toast.classList.add('show');
+    if (ownerToastTimer) clearTimeout(ownerToastTimer);
+    ownerToastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+  function showBubble(type) {
+    document.querySelectorAll('.speech-bubble').forEach(b => b.classList.remove('show'));
+    if (bubbleTimer) clearTimeout(bubbleTimer);
+    const bubble = document.getElementById(type + 'Bubble');
+    bubble.classList.add('show');
+    bubbleTimer = setTimeout(() => bubble.classList.remove('show'), 3500);
+  }
+
+  /* Cat Sprite Animation */
+  let catFrame = 0;
+  let catCycle = 0;
+  const catSequences = [
+    [0, 0, 2, 3, 4, 5, 6],  // no blink
+    [0, 1, 2, 3, 4, 5, 6]   // blink
+  ];
+
+  setInterval(function() {
+    const container = document.getElementById('catContainer');
+    if (!container) return;
+    const seq = catSequences[catCycle];
+    const frameIndex = seq[catFrame];
+    container.style.backgroundPosition = '-' + (frameIndex * 128) + 'px 0';
+    catFrame++;
+    if (catFrame >= seq.length) {
+      catFrame = 0;
+      catCycle = (catCycle + 1) % 2;
+    }
+  }, 350);
+
+  /* Drink Order System */
+  let currentDrink = null;
+  let orderToastTimer = null;
+  let catHasHat = false;
+
+  let catDialogTimer = null;
+
+  function toggleCatDialog() {
+    const dialog = document.getElementById('catDialog');
+    if (dialog.classList.contains('show')) {
+      closeCatDialog();
+      return;
+    }
+    // Hide hat button after given, keep skip + cancel
+    document.getElementById('catHatBtn').style.display = catHasHat ? 'none' : 'block';
+    // Different position: with hat btn (taller) vs without
+    dialog.style.top = catHasHat ? '428px' : '394px';
+    dialog.style.left = catHasHat ? '773px' : '757px';
+    dialog.classList.add('show');
+    document.getElementById('catToast').classList.remove('show');
+    // Auto-dismiss
+    if (catDialogTimer) clearTimeout(catDialogTimer);
+    catDialogTimer = setTimeout(closeCatDialog, 4000);
+  }
+
+  function closeCatDialog() {
+    document.getElementById('catDialog').classList.remove('show');
+    if (catDialogTimer) { clearTimeout(catDialogTimer); catDialogTimer = null; }
+  }
+
+  // Close dialog when clicking outside
+  document.addEventListener('click', function(e) {
+    const dialog = document.getElementById('catDialog');
+    const sprite = document.getElementById('catSprite');
+    if (!dialog.contains(e.target) && !sprite.contains(e.target)) {
+      closeCatDialog();
+    }
+  });
+
+  function giveCatHat() {
+    const container = document.getElementById('catContainer');
+    const sprite = document.getElementById('catSprite');
+    container.style.backgroundImage = "url('images/knight.png')";
+    sprite.style.top = '526px';
+    sprite.style.left = '760px';
+    catHasHat = true;
+    closeCatDialog();
+    // Small toast above cat
+    const toast = document.getElementById('catToast');
+    toast.textContent = '고양이에게 기사 투구를 선물했어요! ⚔️';
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  const drinkInfo = {
+    americano:  { name: '아메리카노',    emoji: '☕', hot: true },
+    latte:      { name: '카페 라떼',     emoji: '☕', tableHtml: '☕<span class="latte-heart">♥</span>', hot: true },
+    espresso:   { name: '에스프레소',    emoji: '☕', hot: true },
+    chamomile:  { name: '카모마일 차',   emoji: '🍵', hot: true },
+    hotchoco: { name: '핫초코', emoji: '☕', orderEmoji: '🍫', hot: true },
+    bubbletea:  { name: '버블티',        emoji: '🧋', hot: false }
+  };
+
+  function orderDrink(el, drinkId) {
+    currentDrink = drinkId;
+    const drink = drinkInfo[drinkId];
+    const tableDrink = document.getElementById('tableDrink');
+    const steamArea = document.getElementById('steamArea');
+    // 기존 감상 문구 숨기기
+    document.getElementById('drinkToast').classList.remove('show');
+
+    if (tableDrink.classList.contains('show')) {
+      // Existing drink - fade out then swap
+      tableDrink.classList.remove('show');
+      steamArea.classList.remove('show');
+      setTimeout(function() {
+        tableDrink.innerHTML = drink.tableHtml || drink.emoji;
+        tableDrink.classList.add('show');
+        if (drink.hot) steamArea.classList.add('show');
+      }, 500);
+    } else {
+      tableDrink.innerHTML = drink.tableHtml || drink.emoji;
+      tableDrink.classList.add('show');
+      if (drink.hot) steamArea.classList.add('show');
+    }
+
+    showOrderToast('주문하신 ' + drink.name + ' ' + (drink.orderEmoji || drink.emoji)+ ' 준비해 드렸습니다.\n맛있게 드세요!');
+  }
+
+  function showOrderToast(msg) {
+    const toast = document.getElementById('orderToast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    if (orderToastTimer) clearTimeout(orderToastTimer);
+    orderToastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  // 음료 클릭 시 감상 문구
+  let drinkToastTimer = null;
+  document.getElementById('tableDrink').addEventListener('click', function() {
+    if (!currentDrink) return;
+    const drink = drinkInfo[currentDrink];
+    const toast = document.getElementById('drinkToast');
+    const msg = drink.hot
+      ? '음~ 마음까지 따뜻해진다. ( ´ ▿ ` )'
+      : '캬~ 정신까지 맑아진다. ( ᐙ )';
+    toast.textContent = msg;
+    toast.classList.remove('hot-pos', 'cold-pos');
+    toast.classList.add(drink.hot ? 'hot-pos' : 'cold-pos');
+    toast.classList.add('show');
+    if (drinkToastTimer) clearTimeout(drinkToastTimer);
+    drinkToastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+  });
+
+  /* YouTube Music Player */
+  let player = null;
+  let isPlaying = false;
+  let musicStarted = false;
+  let playlistIds = [];
+  let currentTrackIndex = 0;
+  let progressInterval = null;
+
+  // Auto-play music on first click anywhere on the page
+  function tryAutoPlay() {
+    if (!musicStarted && player) {
+      musicStarted = true;
+      player.loadPlaylist({
+        listType: 'playlist',
+        list: 'PLAPySWyRggBE8Clp8tdoZtY6JisKa0uRR',
+        index: 0
+      });
+      document.getElementById('musicPrompt').classList.add('hidden');
+      document.removeEventListener('click', tryAutoPlay);
+    }
+  }
+  document.addEventListener('click', tryAutoPlay);
+
+  function advanceTrack() {
+    if (playlistIds.length === 0) return;
+    if (progressInterval) clearInterval(progressInterval);
+    document.getElementById('musicBarFill').style.width = '0%';
+    currentTrackIndex = (currentTrackIndex + 1) % playlistIds.length;
+    console.log('[advanceTrack] -> track', currentTrackIndex, 'https://youtube.com/watch?v=' + playlistIds[currentTrackIndex]);
+    player.loadVideoById(playlistIds[currentTrackIndex]);
+  }
+
+  function updateProgress() {
+    if (!player || !isPlaying) return;
+    try {
+      const current = player.getCurrentTime();
+      const duration = player.getDuration();
+      if (duration > 0) {
+        const pct = (current / duration) * 100;
+        document.getElementById('musicBarFill').style.width = pct + '%';
+      }
+    } catch(e) {}
+  }
+
+  // Load YouTube IFrame API
+  const tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(tag);
+
+  function onYouTubeIframeAPIReady() {
+    player = new YT.Player('ytPlayer', {
+      height: '200',
+      width: '200',
+      playerVars: {
+        autoplay: 0,
+        rel: 0,
+      },
+      events: {
+        onReady: onPlayerReady,
+        onStateChange: onPlayerStateChange
+      }
+    });
+  }
+
+  function onPlayerReady(event) {
+    player.setVolume(40);
+  }
+
+  function onPlayerStateChange(event) {
+    const musicIcon = document.getElementById('musicIcon');
+    const musicTitle = document.getElementById('musicTitle');
+
+    if (event.data === YT.PlayerState.PLAYING) {
+      isPlaying = true;
+      musicIcon.textContent = '⏸';
+
+      // Grab playlist video IDs on first play only
+      if (playlistIds.length === 0) {
+        try {
+          const pl = player.getPlaylist();
+          if (pl && pl.length > 0) {
+            playlistIds = pl;
+            currentTrackIndex = player.getPlaylistIndex() || 0;
+          }
+        } catch(e) {}
+      }
+
+      if (progressInterval) clearInterval(progressInterval);
+      progressInterval = setInterval(updateProgress, 300);
+
+      try {
+        const videoData = player.getVideoData();
+        if (videoData && videoData.title) {
+          musicTitle.textContent = videoData.title;
+        } else {
+          musicTitle.textContent = '♪ 재생 중...';
+        }
+      } catch(e) {
+        musicTitle.textContent = '♪ 재생 중...';
+      }
+
+      document.getElementById('musicBarFill').style.width = '0%';
+
+    } else if (event.data === YT.PlayerState.PAUSED) {
+      isPlaying = false;
+      musicIcon.textContent = '▶';
+      if (progressInterval) clearInterval(progressInterval);
+      musicTitle.textContent = '일시정지';
+
+    } else if (event.data === YT.PlayerState.ENDED) {
+      isPlaying = false;
+      advanceTrack();
+
+    } else if (event.data === -1) {
+      if (musicStarted && playlistIds.length > 0) {
+        isPlaying = false;
+        if (progressInterval) clearInterval(progressInterval);
+        setTimeout(function() {
+          if (!isPlaying && musicStarted) {
+            advanceTrack();
+          }
+        }, 2000);
+      }
+
+    } else if (event.data === YT.PlayerState.CUED) {
+      player.playVideo();
+    }
+  }
+
+  function toggleMusic() {
+    if (!player) return;
+    document.getElementById('musicPrompt').classList.add('hidden');
+    document.removeEventListener('click', tryAutoPlay);
+    if (isPlaying) {
+      player.pauseVideo();
+    } else if (!musicStarted) {
+      musicStarted = true;
+      player.loadPlaylist({
+        listType: 'playlist',
+        list: 'PLAPySWyRggBE8Clp8tdoZtY6JisKa0uRR',
+        index: 0
+      });
+    } else {
+      player.playVideo();
+    }
+  }
+
+  // ㅂ Skip song function (called from cat dialog) ===
+  function skipSong() {
+    if (player && isPlaying) {
+      try {
+        var duration = player.getDuration();
+        if (duration > 5) {
+          player.seekTo(duration - 3, true);
+        }
+      } catch(ex) {}
+    }
+    closeCatDialog();
+  }
+</script>
+
+</body>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCdxEQcKZdfgZEnYXN0OgBzl1gUFRFEEKA",
+    authDomain: "cafe-minu.firebaseapp.com",
+    databaseURL: "https://cafe-minu-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "cafe-minu",
+    storageBucket: "cafe-minu.firebasestorage.app",
+    messagingSenderId: "544277930849",
+    appId: "1:544277930849:web:4d56707defacff4ae15b20"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const GB_PER_PAGE = 8;
+  let gbEntries = [];
+  let gbPage = 1;
+
+  function loadGuestbook() {
+    db.ref('guestbook').orderByChild('timestamp').on('value', (snapshot) => {
+      gbEntries = [];
+      snapshot.forEach((child) => {
+        gbEntries.push({ key: child.key, ...child.val() });
+      });
+      gbEntries.reverse();
+      // Reset to page 1 if current page exceeds total
+      const totalPages = Math.ceil(gbEntries.length / GB_PER_PAGE) || 1;
+      if (gbPage > totalPages) gbPage = totalPages;
+      renderGuestbook();
+    });
+  }
+
+  function renderGuestbook() {
+    const list = document.getElementById('guestbookList');
+    const pagination = document.getElementById('gbPagination');
+    list.innerHTML = '';
+    pagination.innerHTML = '';
+
+    if (gbEntries.length === 0) {
+      list.innerHTML = '<p style="color:rgba(255,255,255,0.4); text-align:center;">아직 남겨진 글이 없어요. 첫 번째 방문 흔적을 남겨보세요!</p>';
+      return;
+    }
+
+    const totalPages = Math.ceil(gbEntries.length / GB_PER_PAGE);
+    const start = (gbPage - 1) * GB_PER_PAGE;
+    const pageEntries = gbEntries.slice(start, start + GB_PER_PAGE);
+
+    pageEntries.forEach((entry) => {
+      const div = document.createElement('div');
+      div.className = 'gb-entry';
+      const date = new Date(entry.timestamp);
+      const dateStr = date.getFullYear() + '.' +
+        String(date.getMonth()+1).padStart(2,'0') + '.' +
+        String(date.getDate()).padStart(2,'0') + ' ' +
+        String(date.getHours()).padStart(2,'0') + ':' +
+        String(date.getMinutes()).padStart(2,'0');
+      div.innerHTML =
+        '<div class="gb-header">' +
+          '<span class="gb-name">' + escapeHtml(entry.name) + '</span>' +
+          '<span class="gb-date">' + dateStr + '</span>' +
+        '</div>' +
+        '<div class="gb-msg">' + escapeHtml(entry.message) + '</div>';
+      list.appendChild(div);
+    });
+
+    // Pagination buttons
+    if (totalPages > 1) {
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'gb-page-btn' + (i === gbPage ? ' active' : '');
+        btn.textContent = i;
+        btn.onclick = function() { gbPage = i; renderGuestbook(); };
+        pagination.appendChild(btn);
+      }
+    }
+  }
+
+  function submitGuestbook() {
+    const nameInput = document.getElementById('gbName');
+    const msgInput = document.getElementById('gbMsg');
+    const name = nameInput.value.trim();
+    const message = msgInput.value.trim();
+    if (!name || !message) return;
+    if (name.length > 20 || message.length > 300) {
+      alert('이름은 20자, 메시지는 300자 이내로 작성해주세요.');
+      return;
+    }
+    db.ref('guestbook').push({
+      name: name,
+      message: message,
+      timestamp: Date.now()
+    });
+    nameInput.value = '';
+    msgInput.value = '';
+    gbPage = 1;
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  loadGuestbook();
+</script>
+</html>
