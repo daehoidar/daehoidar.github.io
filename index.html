@@ -1943,9 +1943,30 @@
     if (playlistIds.length === 0) return;
     if (progressInterval) clearInterval(progressInterval);
     document.getElementById('musicBarFill').style.width = '0%';
-    currentTrackIndex = (currentTrackIndex + 1) % playlistIds.length;
-    console.log('[advanceTrack] -> track', currentTrackIndex, 'https://youtube.com/watch?v=' + playlistIds[currentTrackIndex]);
-    player.loadVideoById(playlistIds[currentTrackIndex]);
+    
+    const nextIndex = (currentTrackIndex + 1) % playlistIds.length;
+    
+    if (nextIndex === 0) {
+      // 마지막→처음: 플레이리스트 처음부터 다시 로드 (광고 대비)
+      currentTrackIndex = 0;
+      adDetected = true;
+      player.mute();
+      document.getElementById('musicTitle').textContent = '📢 광고 재생 중...';
+      document.getElementById('musicTitle').classList.add('ad-playing');
+      document.getElementById('musicBarFill').style.background = '#ff8a65';
+      document.getElementById('musicIcon').textContent = '📢';
+      document.getElementById('musicIcon').style.opacity = '0.5';
+      document.getElementById('musicIcon').style.pointerEvents = 'none';
+      playlistIds = []; // 리셋해서 광고 감지 다시 활성화
+      player.loadPlaylist({
+        listType: 'playlist',
+        list: 'PLAPySWyRggBE8Clp8tdoZtY6JisKa0uRR',
+        index: 0
+      });
+    } else {
+      currentTrackIndex = nextIndex;
+      player.loadVideoById(playlistIds[currentTrackIndex]);
+    }
   }
 
   function updateProgress() {
@@ -2039,7 +2060,7 @@
           musicIcon.textContent = '📢';
           musicIcon.style.opacity = '0.5';
           musicIcon.style.pointerEvents = 'none';
-          musicTitle.textContent = '📢 광고 재생 중...';
+          musicTitle.textContent = '광고 재생 중(음소거)...';
           musicTitle.classList.add('ad-playing');
           document.getElementById('musicBarFill').style.background = '#ff8a65';
         }
