@@ -1907,33 +1907,40 @@
   let adCheckInterval = null;
 
   function checkForAd() {
-    if (!player || !isPlaying) return;
+    if (!player || !musicStarted) return;
     try {
-      // 광고 감지: 플레이리스트 인덱스가 음수이거나,
-      // 영상 길이가 매우 짧거나, 플레이리스트 영상과 URL이 다를 때
-      const idx = player.getPlaylistIndex();
-      const url = player.getVideoUrl() || '';
-      const duration = player.getDuration();
-      const videoData = player.getVideoData();
-      const title = videoData ? videoData.title : '';
+      const state = player.getPlayerState();
+      if (state !== YT.PlayerState.PLAYING) return;
 
-      // 플레이리스트 영상 ID와 현재 영상 ID 비교
       let isAd = false;
-      if (playlistIds.length > 0) {
-        const currentId = url.match(/v=([^&]+)/);
-        const expectedId = playlistIds[currentTrackIndex];
-        if (currentId && expectedId && currentId[1] !== expectedId) {
+
+      // 방법 1: 재생 중인데 플레이리스트가 아직 로드 안 됨 → 광고
+      const pl = player.getPlaylist();
+      if (!pl || pl.length === 0) {
+        isAd = true;
+      } else {
+        // 플레이리스트 로드된 경우 → ID 갱신
+        if (playlistIds.length === 0) playlistIds = pl;
+
+        // 방법 2: 플레이리스트 인덱스가 음수 → 광고
+        const idx = player.getPlaylistIndex();
+        if (idx < 0) {
           isAd = true;
+        } else {
+          // 방법 3: 현재 영상 ID와 플레이리스트 영상 ID 비교
+          const videoData = player.getVideoData();
+          if (videoData && videoData.video_id) {
+            if (pl[idx] !== videoData.video_id) {
+              isAd = true;
+            }
+          }
         }
       }
-      // 플레이리스트 인덱스가 없으면 광고일 가능성
-      if (idx < 0) isAd = true;
 
       const musicTitle = document.getElementById('musicTitle');
       const musicBarFill = document.getElementById('musicBarFill');
 
       if (isAd && !adDetected) {
-        // 광고 시작 → 음소거
         adDetected = true;
         savedVolume = player.getVolume();
         player.mute();
@@ -1941,7 +1948,6 @@
         musicTitle.classList.add('ad-playing');
         musicBarFill.style.background = '#ff8a65';
       } else if (!isAd && adDetected) {
-        // 광고 끝 → 음소거 해제
         adDetected = false;
         player.unMute();
         player.setVolume(savedVolume);
@@ -1962,6 +1968,9 @@
       });
       document.getElementById('musicPrompt').classList.add('hidden');
       document.removeEventListener('click', tryAutoPlay);
+      // 광고 감지 즉시 시작
+      if (adCheckInterval) clearInterval(adCheckInterval);
+      adCheckInterval = setInterval(checkForAd, 500);
     }
   }
   document.addEventListener('click', tryAutoPlay);
@@ -2103,6 +2112,9 @@
         list: 'PLAPySWyRggBE8Clp8tdoZtY6JisKa0uRR',
         index: 0
       });
+      // 광고 감지 즉시 시작
+      if (adCheckInterval) clearInterval(adCheckInterval);
+      adCheckInterval = setInterval(checkForAd, 500);
     } else {
       player.playVideo();
     }
