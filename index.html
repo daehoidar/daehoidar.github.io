@@ -1912,47 +1912,34 @@
       const state = player.getPlayerState();
       if (state !== YT.PlayerState.PLAYING) return;
 
-      let isAd = false;
-
-      // 방법 1: 재생 중인데 플레이리스트가 아직 로드 안 됨 → 광고
       const pl = player.getPlaylist();
-      if (!pl || pl.length === 0) {
-        isAd = true;
-      } else {
-        // 플레이리스트 로드된 경우 → ID 갱신
-        if (playlistIds.length === 0) playlistIds = pl;
-
-        // 방법 2: 플레이리스트 인덱스가 음수 → 광고
-        const idx = player.getPlaylistIndex();
-        if (idx < 0) {
-          isAd = true;
-        } else {
-          // 방법 3: 현재 영상 ID와 플레이리스트 영상 ID 비교
-          const videoData = player.getVideoData();
-          if (videoData && videoData.video_id) {
-            if (pl[idx] !== videoData.video_id) {
-              isAd = true;
-            }
-          }
-        }
-      }
+      const idx = player.getPlaylistIndex();
+      // 플레이리스트 로드되고 인덱스가 정상 → 실제 노래 재생 중
+      const isRealSong = pl && pl.length > 0 && idx >= 0;
 
       const musicTitle = document.getElementById('musicTitle');
       const musicBarFill = document.getElementById('musicBarFill');
 
-      if (isAd && !adDetected) {
+      if (!isRealSong && !adDetected) {
+        // 아직 실제 노래 아님 → 음소거
         adDetected = true;
         savedVolume = player.getVolume();
         player.mute();
         musicTitle.textContent = '📢 광고 재생 중...';
         musicTitle.classList.add('ad-playing');
         musicBarFill.style.background = '#ff8a65';
-      } else if (!isAd && adDetected) {
+      } else if (isRealSong && adDetected) {
+        // 실제 노래 시작 → 음소거 해제
         adDetected = false;
         player.unMute();
         player.setVolume(savedVolume);
         musicTitle.classList.remove('ad-playing');
         musicBarFill.style.background = '#ffab91';
+        // 플레이리스트 ID 저장
+        if (playlistIds.length === 0) {
+          playlistIds = pl;
+          currentTrackIndex = idx;
+        }
       }
     } catch(e) {}
   }
@@ -1961,6 +1948,7 @@
   function tryAutoPlay() {
     if (!musicStarted && player) {
       musicStarted = true;
+      player.mute(); // 광고 대비 즉시 음소거
       player.loadPlaylist({
         listType: 'playlist',
         list: 'PLAPySWyRggBE8Clp8tdoZtY6JisKa0uRR',
@@ -1968,7 +1956,6 @@
       });
       document.getElementById('musicPrompt').classList.add('hidden');
       document.removeEventListener('click', tryAutoPlay);
-      // 광고 감지 즉시 시작
       if (adCheckInterval) clearInterval(adCheckInterval);
       adCheckInterval = setInterval(checkForAd, 500);
     }
@@ -2107,12 +2094,12 @@
       player.pauseVideo();
     } else if (!musicStarted) {
       musicStarted = true;
+      player.mute(); // 광고 대비 즉시 음소거
       player.loadPlaylist({
         listType: 'playlist',
         list: 'PLAPySWyRggBE8Clp8tdoZtY6JisKa0uRR',
         index: 0
       });
-      // 광고 감지 즉시 시작
       if (adCheckInterval) clearInterval(adCheckInterval);
       adCheckInterval = setInterval(checkForAd, 500);
     } else {
