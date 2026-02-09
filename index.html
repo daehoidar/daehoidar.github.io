@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cafe Minu</title>
@@ -47,7 +48,7 @@
     position: absolute;
     top: 200px;
     left: 683px;
-    width: 753px;
+    width: 755px;
     height: 383px;
     overflow: hidden;
     pointer-events: none;
@@ -417,6 +418,10 @@
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 170px;
+  }
+
+  .music-title.ad-playing {
+    color: #ff8a65;
   }
 
   .music-bar {
@@ -990,13 +995,13 @@
   }
 
   .drink-toast.hot-pos {
-    top: 770px;
-    left: 1253px;
+    top: 740px;
+    left: 1290px;
   }
 
   .drink-toast.cold-pos {
-    top: 760px;
-    left: 1267px;
+    top: 740px;
+    left: 1290px;
   }
 
   .drink-toast.show {
@@ -1897,6 +1902,54 @@
   let playlistIds = [];
   let currentTrackIndex = 0;
   let progressInterval = null;
+  let adDetected = false;
+  let savedVolume = 40;
+  let adCheckInterval = null;
+
+  function checkForAd() {
+    if (!player || !isPlaying) return;
+    try {
+      // 광고 감지: 플레이리스트 인덱스가 음수이거나,
+      // 영상 길이가 매우 짧거나, 플레이리스트 영상과 URL이 다를 때
+      const idx = player.getPlaylistIndex();
+      const url = player.getVideoUrl() || '';
+      const duration = player.getDuration();
+      const videoData = player.getVideoData();
+      const title = videoData ? videoData.title : '';
+
+      // 플레이리스트 영상 ID와 현재 영상 ID 비교
+      let isAd = false;
+      if (playlistIds.length > 0) {
+        const currentId = url.match(/v=([^&]+)/);
+        const expectedId = playlistIds[currentTrackIndex];
+        if (currentId && expectedId && currentId[1] !== expectedId) {
+          isAd = true;
+        }
+      }
+      // 플레이리스트 인덱스가 없으면 광고일 가능성
+      if (idx < 0) isAd = true;
+
+      const musicTitle = document.getElementById('musicTitle');
+      const musicBarFill = document.getElementById('musicBarFill');
+
+      if (isAd && !adDetected) {
+        // 광고 시작 → 음소거
+        adDetected = true;
+        savedVolume = player.getVolume();
+        player.mute();
+        musicTitle.textContent = '📢 광고 재생 중...';
+        musicTitle.classList.add('ad-playing');
+        musicBarFill.style.background = '#ff8a65';
+      } else if (!isAd && adDetected) {
+        // 광고 끝 → 음소거 해제
+        adDetected = false;
+        player.unMute();
+        player.setVolume(savedVolume);
+        musicTitle.classList.remove('ad-playing');
+        musicBarFill.style.background = '#ffab91';
+      }
+    } catch(e) {}
+  }
 
   // Auto-play music on first click anywhere on the page
   function tryAutoPlay() {
@@ -1980,15 +2033,23 @@
       if (progressInterval) clearInterval(progressInterval);
       progressInterval = setInterval(updateProgress, 300);
 
-      try {
-        const videoData = player.getVideoData();
-        if (videoData && videoData.title) {
-          musicTitle.textContent = videoData.title;
-        } else {
+      // 광고 감지 시작
+      if (adCheckInterval) clearInterval(adCheckInterval);
+      adCheckInterval = setInterval(checkForAd, 500);
+      checkForAd(); // 즉시 1회 체크
+
+      if (!adDetected) {
+        try {
+          const videoData = player.getVideoData();
+          if (videoData && videoData.title) {
+            musicTitle.textContent = videoData.title;
+          } else {
+            musicTitle.textContent = '♪ 재생 중...';
+          }
+        } catch(e) {
           musicTitle.textContent = '♪ 재생 중...';
         }
-      } catch(e) {
-        musicTitle.textContent = '♪ 재생 중...';
+        musicTitle.classList.remove('ad-playing');
       }
 
       document.getElementById('musicBarFill').style.width = '0%';
@@ -1997,16 +2058,26 @@
       isPlaying = false;
       musicIcon.textContent = '▶';
       if (progressInterval) clearInterval(progressInterval);
+      if (adCheckInterval) clearInterval(adCheckInterval);
+      if (adDetected) {
+        adDetected = false;
+        player.unMute();
+        player.setVolume(savedVolume);
+        musicTitle.classList.remove('ad-playing');
+        document.getElementById('musicBarFill').style.background = '#ffab91';
+      }
       musicTitle.textContent = '일시정지';
 
     } else if (event.data === YT.PlayerState.ENDED) {
       isPlaying = false;
+      if (adCheckInterval) clearInterval(adCheckInterval);
       advanceTrack();
 
     } else if (event.data === -1) {
       if (musicStarted && playlistIds.length > 0) {
         isPlaying = false;
         if (progressInterval) clearInterval(progressInterval);
+        if (adCheckInterval) clearInterval(adCheckInterval);
         setTimeout(function() {
           if (!isPlaying && musicStarted) {
             advanceTrack();
