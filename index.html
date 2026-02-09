@@ -1286,7 +1286,7 @@
     <div class="music-prompt" id="musicPrompt">♪ 화면을 클릭하여 배경 음악을 재생하세요 ♪</div>
 
     <!-- Logo -->
-    <div class="cafe-logo" onclick="triggerBlackout()">Cafe minu</div>
+    <div class="cafe-logo" onclick="onLogoClick()">Cafe minu</div>
 
     <!-- Music Player -->
     <div class="music-player" id="musicPlayer">
@@ -1735,7 +1735,18 @@
   }
 
   /* Screen switching (SPA) */
+  function onLogoClick() {
+    if (blackoutActive) return;
+    // 다른 화면이면 카페로 먼저 전환
+    const cafeScreen = document.getElementById('screenCafe');
+    if (!cafeScreen.classList.contains('active')) {
+      switchScreen('Cafe');
+    }
+    triggerBlackout();
+  }
+
   function switchScreen(name) {
+    if (blackoutActive) return; // 이스터에그 중 네비게이션 차단
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('screen' + name).classList.add('active');
