@@ -473,6 +473,12 @@
     opacity: 0;
   }
 
+  .music-prompt.ad-warning {
+    opacity: 1;
+    color: rgba(255, 138, 101, 0.75);
+    animation: promptPulse 2.5s ease-in-out infinite;
+  }
+
   @keyframes promptPulse {
     0%, 100% { opacity: 0.51; }
     50% { opacity: 0.8; }
@@ -1916,24 +1922,37 @@
   let adDetected = true; // 시작부터 광고로 간주
   let savedVolume = 40;
 
+  function showAdPrompt() {
+    const prompt = document.getElementById('musicPrompt');
+    prompt.textContent = '📢 광고가 음소거로 재생 중입니다. 탭을 유지해주세요.';
+    prompt.classList.remove('hidden');
+    prompt.classList.add('ad-warning');
+  }
+
+  function hideAdPrompt() {
+    const prompt = document.getElementById('musicPrompt');
+    prompt.classList.remove('ad-warning');
+    prompt.classList.add('hidden');
+  }
+
   // Auto-play music on first click anywhere on the page
   function tryAutoPlay() {
     if (!musicStarted && player) {
       musicStarted = true;
       adDetected = true;
       player.mute();
-      document.getElementById('musicTitle').textContent = '광고 재생 중(음소거)...';
+      document.getElementById('musicTitle').textContent = '📢 광고 재생 중...';
       document.getElementById('musicTitle').classList.add('ad-playing');
       document.getElementById('musicBarFill').style.background = '#ff8a65';
       document.getElementById('musicIcon').textContent = '📢';
       document.getElementById('musicIcon').style.opacity = '0.5';
       document.getElementById('musicIcon').style.pointerEvents = 'none';
+      showAdPrompt();
       player.loadPlaylist({
         listType: 'playlist',
         list: 'PLAPySWyRggBE8Clp8tdoZtY6JisKa0uRR',
         index: 0
       });
-      document.getElementById('musicPrompt').classList.add('hidden');
       document.removeEventListener('click', tryAutoPlay);
     }
   }
@@ -1951,13 +1970,14 @@
       currentTrackIndex = 0;
       adDetected = true;
       player.mute();
-      document.getElementById('musicTitle').textContent = '광고 재생 중(음소거)...';
+      document.getElementById('musicTitle').textContent = '📢 광고 재생 중...';
       document.getElementById('musicTitle').classList.add('ad-playing');
       document.getElementById('musicBarFill').style.background = '#ff8a65';
       document.getElementById('musicIcon').textContent = '📢';
       document.getElementById('musicIcon').style.opacity = '0.5';
       document.getElementById('musicIcon').style.pointerEvents = 'none';
       playlistIds = []; // 리셋해서 광고 감지 다시 활성화
+      showAdPrompt();
       player.loadPlaylist({
         listType: 'playlist',
         list: 'PLAPySWyRggBE8Clp8tdoZtY6JisKa0uRR',
@@ -2041,6 +2061,7 @@
             document.getElementById('musicBarFill').style.background = '#ffab91';
             musicIcon.style.opacity = '1';
             musicIcon.style.pointerEvents = 'auto';
+            hideAdPrompt();
           }
           musicIcon.textContent = '⏸';
 
@@ -2060,9 +2081,10 @@
           musicIcon.textContent = '📢';
           musicIcon.style.opacity = '0.5';
           musicIcon.style.pointerEvents = 'none';
-          musicTitle.textContent = '광고 재생 중(음소거)...';
+          musicTitle.textContent = '📢 광고 재생 중...';
           musicTitle.classList.add('ad-playing');
           document.getElementById('musicBarFill').style.background = '#ff8a65';
+          showAdPrompt();
         }
       } catch(e) {
         musicTitle.textContent = '♪ 재생 중...';
@@ -2107,12 +2129,13 @@
       musicStarted = true;
       adDetected = true;
       player.mute();
-      document.getElementById('musicTitle').textContent = '광고 재생 중(음소거)...';
+      document.getElementById('musicTitle').textContent = '📢 광고 재생 중...';
       document.getElementById('musicTitle').classList.add('ad-playing');
       document.getElementById('musicBarFill').style.background = '#ff8a65';
       document.getElementById('musicIcon').textContent = '📢';
       document.getElementById('musicIcon').style.opacity = '0.5';
       document.getElementById('musicIcon').style.pointerEvents = 'none';
+      showAdPrompt();
       player.loadPlaylist({
         listType: 'playlist',
         list: 'PLAPySWyRggBE8Clp8tdoZtY6JisKa0uRR',
