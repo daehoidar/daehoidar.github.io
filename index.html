@@ -1592,6 +1592,7 @@
     overlay.style.opacity = '0';
 
     /* PHASE 1: 전등 깜빡임 + 오버레이 같이 깜빡임 */
+    playSfx('images/flicker_off.mp3', 0.85); // ⏱ 꺼짐 플리커 볼륨
     let flickerCount = 0;
     let lampsOn = true;
     const flickerInterval = setInterval(() => {
@@ -1651,6 +1652,9 @@
           }, 50);
 
           // 500ms 후 깜빡이며 밝아짐
+          setTimeout(() => {
+            playSfx('images/flicker_on.mp3', 0.8);
+          }, 160); // 소리를 0.1초 먼저 (500 - 100 = 400)
           setTimeout(() => {
             overlay.style.transition = 'none';
             lampHoles.forEach(h => { h.classList.remove('waking'); h.classList.remove('waking-full'); });
@@ -1805,12 +1809,29 @@
 
   let catDialogTimer = null;
 
+  // 효과음 재생 유틸리티
+  function playSfx(src, volume) {
+    try {
+      const sfx = new Audio(src);
+      sfx.volume = volume || 0.5;
+      sfx.play().catch(function(){});
+    } catch(e) {}
+  }
+
+  // 고양이 소리 랜덤 재생
+  const catMeows = ['images/cat_meow1.mp3', 'images/cat_meow2.mp3', 'images/cat_meow3.mp3'];
+  function playCatMeow() {
+    const src = catMeows[Math.floor(Math.random() * catMeows.length)];
+    playSfx(src, 0.55); // ⏱ 고양이 소리 볼륨
+  }
+
   function toggleCatDialog() {
     const dialog = document.getElementById('catDialog');
     if (dialog.classList.contains('show')) {
       closeCatDialog();
       return;
     }
+    playCatMeow();
     // Hide hat button after given, keep skip + cancel
     document.getElementById('catHatBtn').style.display = catHasHat ? 'none' : 'block';
     // Different position: with hat btn (taller) vs without
@@ -1922,18 +1943,88 @@
   let adDetected = true; // 시작부터 광고로 간주
   let savedVolume = 40;
 
+  // 카페 + 공원 앰비언스 오디오
+  let cafeAudio = null;
+  let parkAudio = null;
+  let ambientStarted = false;
+
+  // 볼륨 설정
+  const ambientVolume = {
+    cafe: { quiet: 0.3, loud: 0.82 },  // 음악 중 / 정지·광고 중
+    park: { quiet: 0.4, loud: 1.33 }
+  };
+
+  function startAmbience() {
+    if (ambientStarted) return;
+    ambientStarted = true;
+    try {
+      cafeAudio = new Audio('images/cafe_ambience.mp3');
+      cafeAudio.loop = true;
+      cafeAudio.volume = ambientVolume.cafe.quiet;
+
+      parkAudio = new Audio('images/park_ambience.mp3');
+      parkAudio.loop = true;
+      parkAudio.volume = ambientVolume.park.quiet;
+
+      cafeAudio.play().catch(function(){});
+      parkAudio.play().catch(function(){});
+    } catch(e) {}
+  }
+
+  function fadeAmbientTo(mode) {
+    // mode: 'loud' (정지/광고) or 'quiet' (음악 재생 중)
+    const cafeTarget = ambientVolume.cafe[mode];
+    const parkTarget = ambientVolume.park[mode];
+    const steps = 20;
+    const duration = 1500; // 1.5초 페이드
+    const interval = duration / steps;
+
+    if (cafeAudio) {
+      const cafeStart = cafeAudio.volume;
+      const cafeDelta = (cafeTarget - cafeStart) / steps;
+      let cafeStep = 0;
+      const cafeFade = setInterval(function() {
+        cafeStep++;
+        cafeAudio.volume = Math.min(1, Math.max(0, cafeStart + cafeDelta * cafeStep));
+        if (cafeStep >= steps) clearInterval(cafeFade);
+      }, interval);
+    }
+    if (parkAudio) {
+      const parkStart = parkAudio.volume;
+      const parkDelta = (parkTarget - parkStart) / steps;
+      let parkStep = 0;
+      const parkFade = setInterval(function() {
+        parkStep++;
+        parkAudio.volume = Math.min(1, Math.max(0, parkStart + parkDelta * parkStep));
+        if (parkStep >= steps) clearInterval(parkFade);
+      }, interval);
+    }
+  }
+
+  // 페이지 첫 클릭 시 앰비언스 시작
+  function startAmbienceOnFirstClick() {
+    if (ambientStarted) return;
+    startAmbience();
+    document.removeEventListener('click', startAmbienceOnFirstClick);
+  }
+  document.addEventListener('click', startAmbienceOnFirstClick);
+
   function showAdPrompt() {
     const prompt = document.getElementById('musicPrompt');
-    prompt.textContent = '📢 광고가 음소거로 재생 중입니다. 탭을 유지해주세요.';
+    prompt.textContent = '광고가 음소거로 재생 중입니다. 탭을 유지해주세요.';
     prompt.classList.remove('hidden');
     prompt.classList.add('ad-warning');
+    fadeAmbientTo('loud');
   }
 
   function hideAdPrompt() {
     const prompt = document.getElementById('musicPrompt');
     prompt.classList.remove('ad-warning');
     prompt.classList.add('hidden');
+    fadeAmbientTo('quiet');
   }
+
+  function setWindVolume(vol) {} // 호환용 빈 함수
 
   // Auto-play music on first click anywhere on the page
   function tryAutoPlay() {
@@ -1941,7 +2032,7 @@
       musicStarted = true;
       adDetected = true;
       player.mute();
-      document.getElementById('musicTitle').textContent = '📢 광고 재생 중...';
+      document.getElementById('musicTitle').textContent = '광고 재생 중...';
       document.getElementById('musicTitle').classList.add('ad-playing');
       document.getElementById('musicBarFill').style.background = '#ff8a65';
       document.getElementById('musicIcon').textContent = '📢';
@@ -1970,7 +2061,7 @@
       currentTrackIndex = 0;
       adDetected = true;
       player.mute();
-      document.getElementById('musicTitle').textContent = '📢 광고 재생 중...';
+      document.getElementById('musicTitle').textContent = '광고 재생 중...';
       document.getElementById('musicTitle').classList.add('ad-playing');
       document.getElementById('musicBarFill').style.background = '#ff8a65';
       document.getElementById('musicIcon').textContent = '📢';
@@ -2064,6 +2155,7 @@
             hideAdPrompt();
           }
           musicIcon.textContent = '⏸';
+          fadeAmbientTo('quiet'); // 재생 시 앰비언스 작게
 
           // 곡 제목 표시
           const videoData = player.getVideoData();
@@ -2081,7 +2173,7 @@
           musicIcon.textContent = '📢';
           musicIcon.style.opacity = '0.5';
           musicIcon.style.pointerEvents = 'none';
-          musicTitle.textContent = '📢 광고 재생 중...';
+          musicTitle.textContent = '광고 재생 중...';
           musicTitle.classList.add('ad-playing');
           document.getElementById('musicBarFill').style.background = '#ff8a65';
           showAdPrompt();
@@ -2097,6 +2189,7 @@
       musicIcon.textContent = '▶';
       if (progressInterval) clearInterval(progressInterval);
       musicTitle.textContent = '일시정지';
+      fadeAmbientTo('loud'); // 정지 시 앰비언스 크게
 
     } else if (event.data === YT.PlayerState.ENDED) {
       isPlaying = false;
@@ -2129,7 +2222,7 @@
       musicStarted = true;
       adDetected = true;
       player.mute();
-      document.getElementById('musicTitle').textContent = '📢 광고 재생 중...';
+      document.getElementById('musicTitle').textContent = '광고 재생 중...';
       document.getElementById('musicTitle').classList.add('ad-playing');
       document.getElementById('musicBarFill').style.background = '#ff8a65';
       document.getElementById('musicIcon').textContent = '📢';

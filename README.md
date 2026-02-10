@@ -26,3 +26,8 @@
 
 **크레딧**
 Cat sprites by [Krystsina Staselovich](https://itch.io)
+Cafe ambience by [ABloemarts242029](https://freesound.org/s/765189/) — CC BY 4.0
+Park ambience by [klankbeeld](https://freesound.org/s/740468/) — CC BY 4.0
+Kitty cry by [GET_Accel](https://freesound.org/s/427252/) — CC BY 3.0
+Cat mewing by [acclivity](https://freesound.org/s/83934/) — CC BY-NC 4.0
+Light flicker by [mmaruska](https://freesound.org/s/232447/) — CC0
