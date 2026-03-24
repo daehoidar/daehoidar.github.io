@@ -944,6 +944,11 @@
     opacity: 1;
   }
 
+  .blackout-overlay.startup-dark {
+    opacity: 1;
+    transition: none;
+  }
+
   .blackout-lamp-hole {
     position: absolute;
     width: 200px;
@@ -1505,7 +1510,7 @@
     </div>
 
     <!-- Easter Egg Blackout Overlay -->
-    <div class="blackout-overlay" id="blackoutOverlay">
+    <div class="blackout-overlay startup-dark" id="blackoutOverlay">
       <div class="blackout-lamp-hole bl-lamp0" id="blLamp0"></div>
       <div class="blackout-lamp-hole bl-lamp1" id="blLamp1"></div>
       <div class="blackout-lamp-hole bl-lamp2" id="blLamp2"></div>
@@ -1721,13 +1726,16 @@
       h.classList.remove('waking-full');
     });
 
+    overlay.classList.remove('startup-dark');
     overlay.classList.add('show');
     overlay.style.transition = 'none';
     overlay.style.opacity = '1';
 
+    playSfx('images/flicker_off.mp3', 0.85);
+
     setTimeout(() => {
       startLampWakeSequence(lamps, overlay, lampHoles);
-    }, 100);
+    }, 500);
   }
 
   function triggerBlackout() {
