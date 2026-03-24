@@ -1,0 +1,25 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "guestbook": {
+      ".read": true,
+      "$entryId": {
+        ".write": "!data.exists() && newData.exists()",
+        ".validate": "newData.hasChildren(['name', 'message', 'timestamp'])",
+        "name": {
+          ".validate": "newData.isString() && newData.val().matches(/^[^<>]{1,20}$/)"
+        },
+        "message": {
+          ".validate": "newData.isString() && newData.val().matches(/^[^<>]{1,300}$/)"
+        },
+        "timestamp": {
+          ".validate": "newData.isNumber() && newData.val() <= now + 10000 && newData.val() >= now - 86400000"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}

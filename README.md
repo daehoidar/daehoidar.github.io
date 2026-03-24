@@ -15,6 +15,9 @@
 ### 📖 방명록
 이름과 메시지를 남길 수 있습니다.
 
+> 방명록은 이제 `guestbook-backend`(FastAPI) API를 통해 동작합니다.
+> 로컬 실행/배포는 `guestbook-backend/README.md`를 참고하세요.
+
 ### 🎵 배경 음악
 주인장의 지극히 개인적인 취향이 담긴 플레이리스트.
 

@@ -2305,37 +2305,40 @@
 
 </body>
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCdxEQcKZdfgZEnYXN0OgBzl1gUFRFEEKA",
-    authDomain: "cafe-minu.firebaseapp.com",
-    databaseURL: "https://cafe-minu-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "cafe-minu",
-    storageBucket: "cafe-minu.firebasestorage.app",
-    messagingSenderId: "544277930849",
-    appId: "1:544277930849:web:4d56707defacff4ae15b20"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+  const GUESTBOOK_API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:8000'
+    : 'https://cafe-minu-guestbook.fly.dev';
+
   const GB_PER_PAGE = 8;
   let gbEntries = [];
   let gbPage = 1;
 
-  function loadGuestbook() {
-    db.ref('guestbook').orderByChild('timestamp').on('value', (snapshot) => {
-      gbEntries = [];
-      snapshot.forEach((child) => {
-        gbEntries.push({ key: child.key, ...child.val() });
+  function showGuestbookError(msg) {
+    const list = document.getElementById('guestbookList');
+    if (!list) return;
+    list.innerHTML = '<p style="color:rgba(255,140,120,0.85); text-align:center;">' + escapeHtml(msg) + '</p>';
+  }
+
+  async function loadGuestbook() {
+    try {
+      const response = await fetch(GUESTBOOK_API_BASE + '/api/guestbook', {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
       });
-      gbEntries.reverse();
-      // Reset to page 1 if current page exceeds total
+      if (!response.ok) throw new Error('목록을 불러오지 못했습니다.');
+
+      const data = await response.json();
+      gbEntries = Array.isArray(data) ? data : [];
+
       const totalPages = Math.ceil(gbEntries.length / GB_PER_PAGE) || 1;
       if (gbPage > totalPages) gbPage = totalPages;
       renderGuestbook();
-    });
+    } catch (error) {
+      gbEntries = [];
+      renderGuestbook();
+      showGuestbookError('방명록 서버 연결에 실패했어요. 잠시 후 다시 시도해주세요.');
+    }
   }
 
   function renderGuestbook() {
@@ -2383,7 +2386,7 @@
     }
   }
 
-  function submitGuestbook() {
+  async function submitGuestbook() {
     const nameInput = document.getElementById('gbName');
     const msgInput = document.getElementById('gbMsg');
     const name = nameInput.value.trim();
@@ -2393,14 +2396,29 @@
       alert('이름은 20자, 메시지는 300자 이내로 작성해주세요.');
       return;
     }
-    db.ref('guestbook').push({
-      name: name,
-      message: message,
-      timestamp: Date.now()
-    });
-    nameInput.value = '';
-    msgInput.value = '';
-    gbPage = 1;
+    try {
+      const response = await fetch(GUESTBOOK_API_BASE + '/api/guestbook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, message: message })
+      });
+
+      if (!response.ok) {
+        let detail = '방명록 저장에 실패했어요.';
+        try {
+          const errorBody = await response.json();
+          if (errorBody && errorBody.detail) detail = errorBody.detail;
+        } catch (ignore) {}
+        throw new Error(detail);
+      }
+
+      nameInput.value = '';
+      msgInput.value = '';
+      gbPage = 1;
+      await loadGuestbook();
+    } catch (error) {
+      alert(error.message || '방명록 저장에 실패했어요.');
+    }
   }
 
   function escapeHtml(text) {
