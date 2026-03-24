@@ -35,8 +35,9 @@ curl -X POST http://localhost:8000/api/guestbook \
 
 ```bash
 cd guestbook-backend
-fly launch --copy-config --ha=false
-fly deploy
+fly apps create cafe-minu-guestbook --org personal
+fly volumes create guestbook_data --region nrt --size 1 --app cafe-minu-guestbook
+fly deploy --config fly/fly.toml
 ```
 
 필수 환경변수:
