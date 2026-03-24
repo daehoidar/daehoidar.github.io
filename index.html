@@ -1627,6 +1627,109 @@
   /* Easter Egg: Blackout */
   let blackoutActive = false;
 
+  function runLampRecoverySequence(lamps, overlay, lampHoles) {
+    overlay.style.transition = 'none';
+    lampHoles.forEach(h => {
+      h.classList.remove('waking');
+      h.classList.remove('waking-full');
+    });
+
+    let recoverCount = 0;
+    let rLampsOn = false;
+    const recoverInterval = setInterval(() => {
+      rLampsOn = !rLampsOn;
+      lamps.forEach(l => {
+        if (rLampsOn) {
+          l.classList.remove('flicker-off');
+          l.classList.add('flicker-on');
+        } else {
+          l.classList.add('flicker-off');
+          l.classList.remove('flicker-on');
+        }
+      });
+
+      if (recoverCount < 5) {
+        lampHoles.forEach(h => {
+          if (rLampsOn) h.classList.remove('hide');
+          else h.classList.add('hide');
+        });
+      } else {
+        lampHoles.forEach(h => h.classList.remove('hide'));
+      }
+
+      const remaining = 10 - recoverCount;
+      if (rLampsOn) {
+        overlay.style.opacity = String(Math.max(remaining * 0.06, 0));
+      } else {
+        overlay.style.opacity = String(Math.max(remaining * 0.1, 0));
+      }
+
+      recoverCount++;
+
+      if (recoverCount >= 10) {
+        clearInterval(recoverInterval);
+        overlay.style.transition = 'opacity 0.6s';
+        overlay.style.opacity = '0';
+        overlay.classList.remove('show');
+        lamps.forEach(l => {
+          l.classList.remove('flicker-off');
+          l.classList.remove('flicker-on');
+        });
+        blackoutActive = false;
+      }
+    }, 120);
+  }
+
+  function startLampWakeSequence(lamps, overlay, lampHoles) {
+    lampHoles.forEach(h => {
+      h.classList.remove('hide');
+      h.classList.add('waking');
+    });
+
+    setTimeout(() => {
+      lampHoles.forEach(h => {
+        h.classList.remove('waking');
+        h.classList.add('waking-full');
+      });
+    }, 50);
+
+    setTimeout(() => {
+      playSfx('images/flicker_on.mp3', 0.8);
+    }, 160);
+
+    setTimeout(() => {
+      runLampRecoverySequence(lamps, overlay, lampHoles);
+    }, 500);
+  }
+
+  function playInitialLightsOnIntro() {
+    if (blackoutActive) return;
+    blackoutActive = true;
+
+    const lamps = document.querySelectorAll('.lamp-glow');
+    const overlay = document.getElementById('blackoutOverlay');
+    const lampHoles = document.querySelectorAll('.blackout-lamp-hole');
+
+    lamps.forEach(l => {
+      l.classList.add('flicker-off');
+      l.classList.remove('flicker-on');
+    });
+
+    lampHoles.forEach(h => {
+      h.classList.add('hide');
+      h.classList.remove('waking');
+      h.classList.remove('waking-full');
+    });
+
+    overlay.classList.add('show');
+    overlay.style.transition = 'none';
+    overlay.style.opacity = '1';
+
+    setTimeout(() => {
+      startLampWakeSequence(lamps, overlay, lampHoles);
+    }, 100);
+  }
+
   function triggerBlackout() {
     if (blackoutActive) return;
     blackoutActive = true;
@@ -1687,74 +1790,14 @@
         /* PHASE 2: 어둠 유지 후 복구 */
         // 어둠 유지 시간: 4000ms
         setTimeout(() => {
-          // 전등 주위 서서히 밝아짐 (어둡게 시작 → 500ms 동안 밝아짐)
-          lampHoles.forEach(h => {
-            h.classList.remove('hide');
-            h.classList.add('waking');
-          });
-          // 50ms 후 full로 전환 (transition이 0.5s라 서서히 밝아짐)
-          setTimeout(() => {
-            lampHoles.forEach(h => {
-              h.classList.remove('waking');
-              h.classList.add('waking-full');
-            });
-          }, 50);
-
-          // 500ms 후 깜빡이며 밝아짐
-          setTimeout(() => {
-            playSfx('images/flicker_on.mp3', 0.8);
-          }, 160); // 소리를 0.1초 먼저 (500 - 100 = 400)
-          setTimeout(() => {
-            overlay.style.transition = 'none';
-            lampHoles.forEach(h => { h.classList.remove('waking'); h.classList.remove('waking-full'); });
-
-            let recoverCount = 0;
-            let rLampsOn = false;
-            const recoverInterval = setInterval(() => {
-              rLampsOn = !rLampsOn;
-              lamps.forEach(l => {
-                if (rLampsOn) { l.classList.remove('flicker-off'); l.classList.add('flicker-on'); }
-                else { l.classList.add('flicker-off'); l.classList.remove('flicker-on'); }
-              });
-              // 전등 꺼질 때 주변도 어두운 그림자로 (전반부만)
-              if (recoverCount < 5) {
-                lampHoles.forEach(h => {
-                  if (rLampsOn) h.classList.remove('hide');
-                  else h.classList.add('hide');
-                });
-              } else {
-                lampHoles.forEach(h => h.classList.remove('hide'));
-              }
-
-              // 점점 밝아지는 깜빡임
-              const remaining = 10 - recoverCount;
-              if (rLampsOn) {
-                overlay.style.opacity = String(Math.max(remaining * 0.06, 0));
-              } else {
-                overlay.style.opacity = String(Math.max(remaining * 0.1, 0));
-              }
-
-              recoverCount++;
-
-              // 10회째: 완전 복구
-              if (recoverCount >= 10) {
-                clearInterval(recoverInterval);
-                overlay.style.transition = 'opacity 0.6s';
-                overlay.style.opacity = '0';
-                overlay.classList.remove('show');
-                lamps.forEach(l => {
-                  l.classList.remove('flicker-off');
-                  l.classList.remove('flicker-on');
-                });
-                blackoutActive = false;
-              }
-            }, 120); // 깜빡임 간격
-          }, 500);
+          startLampWakeSequence(lamps, overlay, lampHoles);
 
         }, 4000);
       }
     }, 120); // 진입 깜빡임 간격
   }
+
+  setTimeout(playInitialLightsOnIntro, 50);
 
   /* Scale to fit viewport */
   function scaleToFit() {
