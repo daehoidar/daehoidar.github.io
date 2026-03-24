@@ -808,11 +808,43 @@
     background: #1a1a1a;
   }
 
+  .gallery-img-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(circle at 35% 30%, rgba(255,255,255,0.12) 0%, transparent 40%),
+      linear-gradient(110deg, #2a2a2a 8%, #454545 18%, #2a2a2a 33%);
+    background-size: 100% 100%, 200% 100%;
+    animation: gallerySkeletonShimmer 1.2s linear infinite;
+    filter: blur(1px);
+    opacity: 0.95;
+    transition: opacity 0.35s ease;
+  }
+
   .gallery-img-wrap img {
     display: block;
     max-width: 100%;
     max-height: 250px;
     object-fit: contain;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+
+  .gallery-img-wrap.loaded img {
+    opacity: 1;
+  }
+
+  .gallery-img-wrap.loaded .gallery-img-placeholder {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @keyframes gallerySkeletonShimmer {
+    0% { background-position: 0 0, 200% 0; }
+    100% { background-position: 0 0, -200% 0; }
   }
 
   /* Faded edges */
@@ -1538,12 +1570,29 @@
       const blogIcon = item.blog ? '<span class="gallery-blog-icon">📝</span>' : '';
       el.innerHTML =
         '<div class="gallery-paper">' +
-          '<div class="gallery-img-wrap">' +
+          '<div class="gallery-img-wrap loading">' +
+            '<div class="gallery-img-placeholder"></div>' +
             '<img src="' + item.img + '" alt="' + item.title + '" loading="lazy">' +
           '</div>' +
           '<div class="' + titleClass + '">' + item.title + blogIcon + '</div>' +
         '</div>';
       grid.appendChild(el);
+
+      const imgWrap = el.querySelector('.gallery-img-wrap');
+      const imgEl = el.querySelector('img');
+      if (imgWrap && imgEl) {
+        const markImageReady = function() {
+          imgWrap.classList.add('loaded');
+          imgWrap.classList.remove('loading');
+        };
+
+        if (imgEl.complete && imgEl.naturalWidth > 0) {
+          markImageReady();
+        } else {
+          imgEl.addEventListener('load', markImageReady, { once: true });
+          imgEl.addEventListener('error', markImageReady, { once: true });
+        }
+      }
     });
 
     if (totalPages > 1) {
