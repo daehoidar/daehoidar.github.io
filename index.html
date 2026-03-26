@@ -2041,8 +2041,8 @@
 
   // 볼륨 설정
   const ambientVolume = {
-    cafe: { quiet: 0.3, loud: 0.82 },
-    park: { quiet: 0.4, loud: 1.36 }
+    cafe: { quiet: 0.3, loud: 0.87 },
+    park: { quiet: 0.4, loud: 1.39 }
   };
 
   function startAmbience() {
@@ -2182,10 +2182,15 @@
   }
 
   // 첫 클릭 시 음악 시작
-  function tryAutoPlay() {
-    if (!musicStarted && playlist.length > 0) {
+  async function tryAutoPlay() {
+    if (musicStarted) return;
+    document.removeEventListener('click', tryAutoPlay);
+    if (playlist.length === 0) {
+      document.getElementById('musicTitle').textContent = '로딩 중...';
+      await loadPlaylist();
+    }
+    if (playlist.length > 0) {
       playTrack(0);
-      document.removeEventListener('click', tryAutoPlay);
     }
   }
   document.addEventListener('click', tryAutoPlay);
@@ -2194,7 +2199,7 @@
   loadPlaylist();
 
   function toggleMusic() {
-    if (playlist.length === 0) return;
+    if (playlist.length === 0) { tryAutoPlay(); return; }
     document.getElementById('musicPrompt').classList.add('hidden');
 
     if (isPlaying) {
