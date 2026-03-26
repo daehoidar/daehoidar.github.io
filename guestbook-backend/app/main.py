@@ -1,10 +1,12 @@
 ﻿import os
 import sqlite3
+import time
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
+from yt_dlp import YoutubeDL
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
@@ -60,7 +62,39 @@ def sanitize_text(value: str) -> str:
     return cleaned
 
 
-app = FastAPI(title="Cafe Minu Guestbook API", version="1.0.0")
+app = FastAPI(title="Cafe Minu API", version="1.0.0")
+
+# ── yt-dlp 음악 스트리밍 ─────────────────────────────────────────
+PLAYLIST_ID = "PLAPySWyRggBE8Clp8tdoZtY6JisKa0uRR"
+
+# 캐시: {video_id: {"url": ..., "expires": epoch}}
+_stream_cache: dict[str, dict] = {}
+CACHE_TTL = 3600  # 1시간 (YouTube URL은 보통 6시간 유효)
+
+
+def _extract_audio_url(video_id: str) -> str:
+    """yt-dlp로 YouTube 영상에서 오디오 스트림 URL을 추출한다."""
+    ydl_opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+        "format": "bestaudio/best",
+    }
+    with YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(
+            f"https://www.youtube.com/watch?v={video_id}", download=False
+        )
+        return info["url"]
+
+
+def _get_cached_url(video_id: str) -> str:
+    """캐시된 URL이 유효하면 반환, 아니면 새로 추출한다."""
+    cached = _stream_cache.get(video_id)
+    if cached and cached["expires"] > time.time():
+        return cached["url"]
+    url = _extract_audio_url(video_id)
+    _stream_cache[video_id] = {"url": url, "expires": time.time() + CACHE_TTL}
+    return url
 
 origins_env = os.getenv("ALLOWED_ORIGINS", "")
 allowed_origins = [origin.strip() for origin in origins_env.split(",") if origin.strip()]
@@ -84,6 +118,44 @@ def on_startup() -> None:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+# ── 음악 API ─────────────────────────────────────────────────────
+@app.get("/api/music/playlist")
+def get_playlist():
+    """플레이리스트의 모든 곡 정보(id, title, thumbnail)를 반환한다."""
+    ydl_opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+        "extract_flat": True,
+    }
+    with YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(
+            f"https://www.youtube.com/playlist?list={PLAYLIST_ID}",
+            download=False,
+        )
+    tracks = []
+    for entry in info.get("entries", []):
+        vid = entry.get("id", "")
+        tracks.append({
+            "id": vid,
+            "title": entry.get("title", "Unknown"),
+            "thumbnail": f"https://i.ytimg.com/vi/{vid}/default.jpg",
+        })
+    return {"tracks": tracks}
+
+
+@app.get("/api/music/stream")
+def get_stream_url(video_id: str = Query(..., min_length=1)):
+    """video_id에 대한 오디오 스트림 URL을 반환한다."""
+    try:
+        url = _get_cached_url(video_id)
+        return {"url": url}
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail=f"스트림 URL 추출 실패: {exc}"
+        ) from exc
 
 
 @app.get("/api/guestbook", response_model=list[GuestbookEntry])
