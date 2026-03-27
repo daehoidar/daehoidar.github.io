@@ -3,10 +3,8 @@ import sqlite3
 import time
 from pathlib import Path
 
-import httpx
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 from yt_dlp import YoutubeDL
 
@@ -148,66 +146,16 @@ def get_playlist():
     return {"tracks": tracks}
 
 
-@app.head("/api/music/stream")
 @app.get("/api/music/stream")
-def proxy_stream(video_id: str = Query(..., min_length=1), request: Request = None):
-    """백엔드가 오디오를 대신 가져와서 브라우저에 중계한다 (Range 요청 지원)."""
+def get_stream_url(video_id: str = Query(..., min_length=1)):
+    """video_id에 대한 오디오 스트림 URL을 반환한다. 브라우저가 직접 접근."""
     try:
         url = _get_cached_url(video_id)
+        return {"url": url}
     except Exception as exc:
         raise HTTPException(
             status_code=500, detail=f"스트림 URL 추출 실패: {exc}"
         ) from exc
-
-    is_head = request and request.method == "HEAD"
-
-    # HEAD 요청: 메타데이터만 반환 (본문 없음)
-    if is_head:
-        upstream = httpx.head(url, timeout=10.0, follow_redirects=True)
-        return StreamingResponse(
-            iter([b""]),
-            headers={
-                "Accept-Ranges": "bytes",
-                "Content-Type": upstream.headers.get("content-type", "audio/mp4"),
-                "Content-Length": upstream.headers.get("content-length", "0"),
-            },
-        )
-
-    # GET 요청: Range 헤더를 그대로 전달하고 청크 단위로 스트리밍
-    req_headers = {}
-    range_header = request.headers.get("range") if request else None
-    if range_header:
-        req_headers["Range"] = range_header
-
-    client = httpx.Client(follow_redirects=True)
-    upstream = client.send(
-        client.build_request("GET", url, headers=req_headers),
-        stream=True,
-    )
-
-    resp_headers = {
-        "Accept-Ranges": "bytes",
-        "Content-Type": upstream.headers.get("content-type", "audio/mp4"),
-    }
-    if "content-length" in upstream.headers:
-        resp_headers["Content-Length"] = upstream.headers["content-length"]
-    if "content-range" in upstream.headers:
-        resp_headers["Content-Range"] = upstream.headers["content-range"]
-
-    status_code = 206 if upstream.status_code == 206 else 200
-
-    def _iter():
-        try:
-            yield from upstream.iter_bytes(chunk_size=64 * 1024)
-        finally:
-            upstream.close()
-            client.close()
-
-    return StreamingResponse(
-        _iter(),
-        status_code=status_code,
-        headers=resp_headers,
-    )
 
 
 @app.get("/api/guestbook", response_model=list[GuestbookEntry])
