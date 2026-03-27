@@ -1,10 +1,10 @@
 ﻿import os
 import sqlite3
-import time
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field
 from yt_dlp import YoutubeDL
 
@@ -64,37 +64,30 @@ def sanitize_text(value: str) -> str:
 
 app = FastAPI(title="Cafe Minu API", version="1.0.0")
 
-# ── yt-dlp 음악 스트리밍 ─────────────────────────────────────────
+# ── yt-dlp 음악 ──────────────────────────────────────────────────
 PLAYLIST_ID = "PLAPySWyRggBE8Clp8tdoZtY6JisKa0uRR"
-
-# 캐시: {video_id: {"url": ..., "expires": epoch}}
-_stream_cache: dict[str, dict] = {}
-CACHE_TTL = 3600  # 1시간 (YouTube URL은 보통 6시간 유효)
+MUSIC_DIR = DATA_DIR / "music"
+MUSIC_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _extract_audio_url(video_id: str) -> str:
-    """yt-dlp로 YouTube 영상에서 오디오 스트림 URL을 추출한다."""
+def _download_audio(video_id: str) -> Path:
+    """서버에 오디오 파일을 다운로드한다. 이미 있으면 캐시된 파일 반환."""
+    existing = list(MUSIC_DIR.glob(f"{video_id}.*"))
+    if existing:
+        return existing[0]
+
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
-        "skip_download": True,
         "format": "bestaudio[ext=m4a]/bestaudio/best",
+        "outtmpl": str(MUSIC_DIR / "%(id)s.%(ext)s"),
     }
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(
-            f"https://www.youtube.com/watch?v={video_id}", download=False
+            f"https://www.youtube.com/watch?v={video_id}", download=True
         )
-        return info["url"]
-
-
-def _get_cached_url(video_id: str) -> str:
-    """캐시된 URL이 유효하면 반환, 아니면 새로 추출한다."""
-    cached = _stream_cache.get(video_id)
-    if cached and cached["expires"] > time.time():
-        return cached["url"]
-    url = _extract_audio_url(video_id)
-    _stream_cache[video_id] = {"url": url, "expires": time.time() + CACHE_TTL}
-    return url
+        ext = info.get("ext", "m4a")
+        return MUSIC_DIR / f"{video_id}.{ext}"
 
 origins_env = os.getenv("ALLOWED_ORIGINS", "")
 allowed_origins = [origin.strip() for origin in origins_env.split(",") if origin.strip()]
@@ -147,14 +140,14 @@ def get_playlist():
 
 
 @app.get("/api/music/stream")
-def get_stream_url(video_id: str = Query(..., min_length=1)):
-    """video_id에 대한 오디오 스트림 URL을 반환한다. 브라우저가 직접 접근."""
+def stream_audio(video_id: str = Query(..., min_length=1)):
+    """오디오 파일을 서버에서 다운로드 후 직접 서빙한다."""
     try:
-        url = _get_cached_url(video_id)
-        return {"url": url}
+        file_path = _download_audio(video_id)
+        return FileResponse(file_path, media_type="audio/mp4")
     except Exception as exc:
         raise HTTPException(
-            status_code=500, detail=f"스트림 URL 추출 실패: {exc}"
+            status_code=500, detail=f"오디오 다운로드 실패: {exc}"
         ) from exc
 
 

@@ -2151,10 +2151,7 @@
     musicIcon.style.pointerEvents = 'none';
 
     try {
-      const res = await fetch(MUSIC_API_BASE + '/api/music/stream?video_id=' + encodeURIComponent(track.id));
-      const data = await res.json();
-
-      audioPlayer.src = data.url;
+      audioPlayer.src = MUSIC_API_BASE + '/api/music/stream?video_id=' + encodeURIComponent(track.id);
       audioPlayer.load();
       await new Promise(function(resolve, reject) {
         audioPlayer.oncanplay = resolve;
