@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import time
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -60,7 +61,11 @@ def sanitize_text(value: str) -> str:
     return cleaned
 
 
-app = FastAPI(title="Cafe Minu Guestbook API", version="1.0.0")
+app = FastAPI(title="Cafe Minu API", version="1.0.0")
+
+# ── 실시간 방문자 추적 ───────────────────────────────────────────
+_visitors: dict[str, float] = {}  # {visitor_id: last_heartbeat_timestamp}
+VISITOR_TTL = 60  # 60초 동안 heartbeat 없으면 퇴장 처리
 
 origins_env = os.getenv("ALLOWED_ORIGINS", "")
 allowed_origins = [origin.strip() for origin in origins_env.split(",") if origin.strip()]
@@ -84,6 +89,27 @@ def on_startup() -> None:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+# ── 방문자 API ────────────────────────────────────────────────────
+@app.post("/api/visitors/heartbeat")
+def visitor_heartbeat(visitor_id: str):
+    """방문자 heartbeat 등록. 30초마다 호출."""
+    now = time.time()
+    _visitors[visitor_id] = now
+    # 만료된 방문자 정리
+    expired = [k for k, v in _visitors.items() if now - v > VISITOR_TTL]
+    for k in expired:
+        del _visitors[k]
+    return {"count": len(_visitors)}
+
+
+@app.get("/api/visitors/count")
+def visitor_count():
+    """현재 접속자 수 반환."""
+    now = time.time()
+    active = sum(1 for v in _visitors.values() if now - v <= VISITOR_TTL)
+    return {"count": active}
 
 
 @app.get("/api/guestbook", response_model=list[GuestbookEntry])

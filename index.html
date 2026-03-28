@@ -3,7 +3,7 @@
 <head>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Cafe Minu</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1315,6 +1315,28 @@
     z-index: 20;
     image-rendering: auto;
   }
+
+  /* Visitor Count */
+  .visitor-count {
+    position: absolute;
+    right: 14px;
+    bottom: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    color: #a1887f;
+    opacity: 0.7;
+    pointer-events: none;
+    user-select: none;
+  }
+  .visitor-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    background: #e53935;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
 </style>
 </head>
 <body>
@@ -1506,6 +1528,9 @@
       <div class="nav-btn" onclick="switchScreen('Guestbook')" id="navGuestbook">
         <span class="nav-icon">📖</span>
         <span class="nav-label">방명록</span>
+      </div>
+      <div class="visitor-count" id="visitorCount">
+        <span class="visitor-dot"></span><span id="visitorNum">0</span>명
       </div>
     </div>
 
@@ -2479,5 +2504,25 @@
   }
 
   loadGuestbook();
+</script>
+
+<script>
+  // ── 실시간 방문자 수 ─────────────────────────────────────────
+  (function() {
+    const API = GUESTBOOK_API_BASE;
+    const vid = sessionStorage.getItem('cafe_vid') || Math.random().toString(36).slice(2);
+    sessionStorage.setItem('cafe_vid', vid);
+
+    async function heartbeat() {
+      try {
+        const res = await fetch(API + '/api/visitors/heartbeat?visitor_id=' + vid, { method: 'POST' });
+        const data = await res.json();
+        document.getElementById('visitorNum').textContent = data.count;
+      } catch(e) {}
+    }
+
+    heartbeat();
+    setInterval(heartbeat, 30000);
+  })();
 </script>
 </html>
